@@ -13,6 +13,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.abs
 
 class ReserveProblem(@StringRes val messageRes: Int) : RuntimeException()
 
@@ -23,7 +24,8 @@ data class ReserveDraft(
   val startDate: String = LocalDate.now(ZoneId.of("Europe/Warsaw")).toString(),
   val validUntil: String = LocalDate.now(ZoneId.of("Europe/Warsaw")).plusYears(1).minusDays(1).toString(),
   val manualBaseline: Boolean = false,
-  val baselineKwh: String = ""
+  val baselineKwh: String = "",
+  val historicalBaseline: ReserveReading? = null
 )
 
 @Singleton
@@ -50,11 +52,11 @@ class EnergyReserveRepository @Inject constructor(
   fun refresh(context: ReserveContext): ReserveContext {
     ensureProfile(context.profileId)
     val reserve = context.reserve ?: return context
-    if (reserve.resetDetected || dateProvider.currentTimestamp() < reserve.startsAt) return context
+    if (reserve.resetDetected || dateProvider.currentTimestamp() < reserve.readingStartsAt) return context
     val cutoff = minOf(dateProvider.currentTimestamp(), reserve.expiresAt)
     val reading = readAt(context.channelId, cutoff)
     ensureProfile(context.profileId)
-    if (reading.timestamp < reserve.startsAt || reading.timestamp > cutoff) throw ReserveProblem(R.string.reserve_error_reading)
+    if (reading.timestamp < reserve.readingStartsAt || reading.timestamp > cutoff) throw ReserveProblem(R.string.reserve_error_reading)
     if (reserve.lastReading?.let { reading.timestamp < it.timestamp } == true) throw ReserveProblem(R.string.reserve_error_reading)
     val updated = reserve.copy(
       lastReading = reading,
@@ -62,6 +64,67 @@ class EnergyReserveRepository @Inject constructor(
     )
     write(updated)
     return context.copy(reserve = updated)
+  }
+
+  fun findBaselineCandidates(
+    context: ReserveContext,
+    draft: ReserveDraft,
+    fromDate: String,
+    untilDate: String
+  ): List<ReserveReading> {
+    ensureProfile(context.profileId)
+    val zone = ZoneId.of("Europe/Warsaw")
+    val target: Long
+    val from: Long
+    val until: Long
+    try {
+      target = LocalDate.parse(draft.startDate).atStartOfDay(zone).toInstant().toEpochMilli()
+      val expiresAt = LocalDate.parse(draft.validUntil).plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+      from = LocalDate.parse(fromDate).atStartOfDay(zone).toInstant().toEpochMilli()
+      val untilExclusive = LocalDate.parse(untilDate).plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+      require(untilExclusive > from && expiresAt > target)
+      until = minOf(untilExclusive - 1, expiresAt - 1, dateProvider.currentTimestamp())
+    } catch (_: Exception) {
+      throw ReserveProblem(R.string.reserve_error_history_range)
+    }
+    if (from > until) return emptyList()
+    val service = cloudProvider.provide()
+    val measurements = mutableListOf<ElectricityMeasurement>()
+    val beforeEnd = minOf(target, until)
+    if (from <= beforeEnd) {
+      measurements += service.getElectricityMeasurements(
+        remoteId = context.channelId,
+        order = "DESC",
+        limit = 20,
+        afterTimestamp = from / 1000 - 1,
+        beforeTimestamp = beforeEnd / 1000 + 1
+      ).blockingFirst().filter { it.date.time in from..beforeEnd }
+    }
+    ensureProfile(context.profileId)
+    val afterStart = maxOf(target, from)
+    if (afterStart <= until) {
+      measurements += service.getElectricityMeasurements(
+        remoteId = context.channelId,
+        order = "ASC",
+        limit = 20,
+        afterTimestamp = afterStart / 1000 - 1,
+        beforeTimestamp = until / 1000 + 1
+      ).blockingFirst().filter { it.date.time in afterStart..until }
+    }
+    ensureProfile(context.profileId)
+    val valid = measurements.mapNotNull { measurement ->
+      try {
+        measurement.toReserveReading()
+      } catch (_: ReserveProblem) {
+        null
+      } catch (_: ArithmeticException) {
+        null
+      }
+    }.distinctBy { it.timestamp }
+    if (measurements.isNotEmpty() && valid.isEmpty()) throw ReserveProblem(R.string.reserve_error_phases)
+    val candidates = valid.filter { it.timestamp <= target }.sortedByDescending { it.timestamp }.take(3) +
+      valid.filter { it.timestamp > target }.sortedBy { it.timestamp }.take(3)
+    return candidates.sortedWith(compareBy<ReserveReading> { abs(it.timestamp - target) }.thenBy { it.timestamp })
   }
 
   fun save(context: ReserveContext, draft: ReserveDraft): ReserveContext {
@@ -83,9 +146,12 @@ class EnergyReserveRepository @Inject constructor(
       val raw = ReserveEnergy.parseKwh(draft.baselineKwh) ?: throw ReserveProblem(R.string.reserve_error_baseline)
       ReserveReading(startsAt, raw)
     } else {
-      readAt(context.channelId, startsAt).also {
-        if (it.timestamp > startsAt || startsAt - it.timestamp > 120_000) throw ReserveProblem(R.string.reserve_error_history)
+      val selected = draft.historicalBaseline ?: throw ReserveProblem(R.string.reserve_error_history_selection)
+      val expiresAt = end.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+      if (selected.timestamp > dateProvider.currentTimestamp() || selected.timestamp >= expiresAt || selected.phases?.size != 3) {
+        throw ReserveProblem(R.string.reserve_error_history_selection)
       }
+      selected
     }
     ensureProfile(context.profileId)
     val reserve = EnergyReserve(
