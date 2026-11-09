@@ -2,7 +2,7 @@
 
 Moduł dla Androida i licznika ZAMEL MEW-01. Obsługuje poprzednią pulę z faktury i drugą pulę zgromadzoną w bieżącym okresie, z potrąceniem 20% albo 30%. Obie pule mogą korzystać z bilansu godzinowego. Szczegółowa [analiza danych i obliczeń](MAGAZYN_BILANS_GODZINOWY.md) opisuje metodę, jakość historii i granice modelu.
 
-W nowej konfiguracji lub przy edycji wybierz **Dwa magazyny i bilansowanie godzinowe**, ustaw potrącenie i zapisz. Obliczenia rozpoczynają się od pierwszego dnia okresu, bez ręcznego wyboru stanu licznika. Pierwsze pobranie historii może potrwać dłużej. Luki są uzupełniane z zachowaniem przyrostów liczników; ekran oznacza saldo przybliżone/częściowe i udostępnia szczegóły oraz pełne ponowne przeliczenie. Dotychczasowy zapis zachowuje starą metodę do zapisania nowej konfiguracji. Poniższy opis wyboru próbki dotyczy trybu jednej puli, dostępnego po wyłączeniu opcji godzinowej.
+W konfiguracji niezależnie ustaw **Magazyn bieżącego okresu (drugi magazyn)** i **Bilansowanie godzinowe**. Dla jednej puli z bilansem godzinowym wyłącz drugi magazyn i włącz bilansowanie. Potrącenie wybierasz wyłącznie dla drugiego magazynu. Obliczenia rozpoczynają się od pierwszego dnia okresu, bez ręcznego wyboru stanu licznika. Pierwsze pobranie historii może potrwać dłużej. Luki są uzupełniane z zachowaniem przyrostów liczników; ekran oznacza saldo przybliżone/częściowe i udostępnia szczegóły oraz pełne ponowne przeliczenie. Dotychczasowy zapis zachowuje starą metodę do zapisania nowej konfiguracji. Poniższy opis wyboru próbki dotyczy jednej puli bez bilansowania godzinowego, gdy oba przełączniki są wyłączone.
 
 ## Konfiguracja
 

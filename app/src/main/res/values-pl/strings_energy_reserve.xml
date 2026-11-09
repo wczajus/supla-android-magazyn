@@ -2,14 +2,14 @@
 <resources>
   <string name="reserve_tab">Magazyn</string>
   <string name="reserve_title">Magazyn energii</string>
-  <string name="reserve_description">Monitoruj pulę z poprzedniej faktury oraz energię zgromadzoną w bieżącym okresie.</string>
+  <string name="reserve_description">Monitoruj pulę z poprzedniej faktury i opcjonalnie energię zgromadzoną w bieżącym okresie. Metodę bilansowania wybierasz niezależnie.</string>
   <string name="reserve_empty">Dodaj pulę energii z faktury</string>
   <string name="reserve_configure">Skonfiguruj magazyn</string>
   <string name="reserve_remaining">Pozostało do wykorzystania</string>
   <string name="reserve_initial">Pula początkowa</string>
   <string name="reserve_used">Wykorzystano z puli</string>
   <string name="reserve_imported">Pobór z sieci w okresie</string>
-  <string name="reserve_excess">Pobór poza oboma magazynami</string>
+  <string name="reserve_excess">Pobór niepokryty przez magazyny</string>
   <string name="reserve_expired_amount">Niewykorzystane przy ostatnim odczycie</string>
   <string name="reserve_active">Pula dostępna</string>
   <string name="reserve_exhausted">Magazyn wykorzystany</string>
@@ -76,17 +76,17 @@
   <string name="reserve_current_used">Wykorzystano z nowej puli</string>
   <string name="reserve_total_available">Łącznie dostępne w obu pulach</string>
   <string name="reserve_retained">Potrącenie %1$d%% — do odbioru %2$d%%</string>
-  <string name="reserve_fifo_help">Pobór po bilansowaniu godzinowym wykorzystuje najpierw pulę z faktury. Dopiero pobór ponad tę pulę pomniejsza energię zgromadzoną w bieżącym okresie.</string>
-  <string name="reserve_hourly_source">Obie pule: bilansowanie godzinowe</string>
+  <string name="reserve_fifo_help">Pobór wykorzystuje najpierw pulę z faktury. Dopiero pobór ponad tę pulę pomniejsza energię zgromadzoną w bieżącym okresie.</string>
+  <string name="reserve_hourly_source">Bilansowanie godzinowe</string>
   <string name="reserve_hourly_until">Rozliczono pełne godziny do: %1$s</string>
   <string name="reserve_hourly_estimate">Szacunek: granice godzin i braki historii odtworzono z dostępnych pomiarów. Szczegóły znajdziesz w jakości danych.</string>
-  <string name="reserve_hourly_enable">Dwa magazyny i bilansowanie godzinowe</string>
+  <string name="reserve_hourly_enable">Bilansowanie godzinowe</string>
   <string name="reserve_coefficient_label">Potrącenie energii oddanej</string>
-  <string name="reserve_hourly_setup_help">Obliczenia obu pul zaczynają się o północy pierwszego dnia okresu i kończą z ostatnim dniem ważności. Pobieramy historię poboru i oddania z trzech faz. Pierwsze przeliczenie może potrwać dłużej. Po nowej fakturze ustaw nowy okres i nową pulę.</string>
+  <string name="reserve_hourly_setup_help">Bilansujemy pobór i oddanie w każdej godzinie od północy pierwszego dnia okresu. Zbilansowany pobór pomniejsza pulę z faktury. Jeśli drugi magazyn jest włączony, gromadzi zbilansowane oddanie po wybranym potrąceniu. Pierwsze pobranie historii może potrwać dłużej.</string>
   <string name="reserve_current_enable_help">Skonfiguruj bilansowanie godzinowe, aby obliczyć energię zgromadzoną od pierwszego dnia okresu.</string>
   <string name="reserve_current_enable">Włącz drugi magazyn</string>
   <string name="reserve_error_hourly_history">Brak odczytów pozwalających rozpocząć obliczenia w wybranym okresie. Sprawdź daty lub dostępność historii. Zachowano poprzedni wynik.</string>
-  <string name="reserve_error_hourly_phases">Bilansowanie godzinowe wymaga liczników poboru i oddania ze wszystkich trzech faz. Brakujące wartości nie są zastępowane zerem.</string>
+  <string name="reserve_error_hourly_phases">Ten tryb wymaga liczników poboru i oddania ze wszystkich trzech faz. Brakujące wartości nie są zastępowane zerem.</string>
   <string name="reserve_error_coefficient" formatted="false">Wybierz potrącenie 20% albo 30%.</string>
   <string name="reserve_quality_title">Jakość danych</string>
   <string name="reserve_quality_estimated">Saldo przybliżone</string>
@@ -107,4 +107,11 @@
   <string name="reserve_gap_mixed">Metoda mieszana: profil godzinowy i rozkład równomierny dla liczników bez wystarczającego profilu.</string>
   <string name="reserve_rebuild">Przelicz całą historię</string>
   <string name="reserve_rebuild_help">Jeśli brakujące pomiary pojawiły się później, przelicz całą historię, aby zastąpić wcześniejsze szacunki. Nie zmienia to wartości z faktury ani wybranego potrącenia.</string>
+  <string name="reserve_current_enable_label">Magazyn bieżącego okresu (drugi magazyn)</string>
+  <string name="reserve_raw_dual_setup_help">Bez bilansowania godzinowego liczymy pełny pobór i pełne oddanie ze wszystkich trzech faz, od pierwszego dnia okresu. Wybrane potrącenie dotyczy tylko nowej energii oddanej. Pulę z faktury wykorzystujemy w pierwszej kolejności.</string>
+  <string name="reserve_raw_source">Bez bilansowania godzinowego — pełny pobór i oddanie</string>
+  <string name="reserve_raw_start">Początek danych: %1$s</string>
+  <string name="reserve_raw_partial">Saldo przybliżone dla dostępnego fragmentu okresu. Brakuje danych na początku lub końcu.</string>
+  <string name="reserve_raw_start_estimate">Stan na początek okresu oszacowano z sąsiednich odczytów.</string>
+  <string name="reserve_export_raw">Oddano do sieci (bez bilansowania)</string>
 </resources>

@@ -101,7 +101,7 @@ private fun EnergyReserveContent(state: EnergyReserveState, actions: ReserveActi
       if (reserve != null && state.balance != null) {
         if (reserve.hourlyEnabled) ReserveHistoryQuality(reserve, state.balance, !state.busy, actions.rebuild)
         ReserveOverview(reserve, state.balance)
-        ReserveCurrentOverview(reserve, state.balance, !state.busy, actions.edit)
+        if (reserve.currentReserveEnabled) ReserveCurrentOverview(reserve, state.balance)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
           ReserveButton(onClick = actions.refresh, enabled = !state.busy, modifier = Modifier.weight(1f)) {
             Text(stringResource(R.string.reserve_refresh))
@@ -293,6 +293,21 @@ private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
             Text(stringResource(R.string.reserve_hourly_estimate), style = MaterialTheme.typography.bodySmall)
           }
         }
+      } else if (reserve.currentReserveEnabled) {
+        Text(stringResource(R.string.reserve_raw_source), style = MaterialTheme.typography.labelLarge)
+        reserve.flowBaseline?.let {
+          Text(
+            stringResource(R.string.reserve_raw_start, displayTime(it.timestamp, reserve.zoneId)),
+            style = MaterialTheme.typography.bodySmall
+          )
+        }
+        if (balance.partial) Text(stringResource(R.string.reserve_raw_partial), style = MaterialTheme.typography.bodySmall)
+        if (reserve.flowBaselineEstimated) {
+          Text(
+            stringResource(R.string.reserve_raw_start_estimate),
+            style = MaterialTheme.typography.bodySmall
+          )
+        }
       } else {
         Text(
           stringResource(if (reserve.manualBaseline) R.string.reserve_manual_source else R.string.reserve_history_source),
@@ -330,8 +345,8 @@ private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
 }
 
 @Composable
-private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalance, enabled: Boolean, onConfigure: () -> Unit) {
-  val available = reserve.hourlyEnabled && balance.status in listOf(ReserveStatus.ACTIVE, ReserveStatus.EXHAUSTED, ReserveStatus.EXPIRED)
+private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalance) {
+  val available = balance.status in listOf(ReserveStatus.ACTIVE, ReserveStatus.EXHAUSTED, ReserveStatus.EXPIRED)
   val fraction = if (balance.currentCreditedRaw > 0) {
     (balance.currentRemainingRaw.toDouble() / balance.currentCreditedRaw).toFloat().coerceIn(0f, 1f)
   } else {
@@ -344,7 +359,7 @@ private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalan
       verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
       Text(stringResource(R.string.reserve_current_title), style = MaterialTheme.typography.titleMedium)
-      ReserveBattery(fraction, configured = reserve.hourlyEnabled)
+      ReserveBattery(fraction)
       if (available) {
         Text(stringResource(R.string.reserve_current_remaining), style = MaterialTheme.typography.bodyMedium)
         Text(
@@ -352,17 +367,14 @@ private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalan
           style = MaterialTheme.typography.headlineLarge
         )
         LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
-        ReserveMetric(R.string.reserve_export_hourly, balance.exportedRaw)
+        ReserveMetric(if (reserve.hourlyEnabled) R.string.reserve_export_hourly else R.string.reserve_export_raw, balance.exportedRaw)
         ReserveMetric(R.string.reserve_current_credited, balance.currentCreditedRaw)
         ReserveMetric(R.string.reserve_current_used, balance.currentUsedRaw)
       } else {
-        Text(stringResource(if (reserve.hourlyEnabled) R.string.reserve_no_reading else R.string.reserve_current_enable_help))
+        Text(stringResource(R.string.reserve_no_reading))
       }
       Text(stringResource(R.string.reserve_retained, 100 - reserve.retainedPercent, reserve.retainedPercent))
       Text(stringResource(R.string.reserve_fifo_help), style = MaterialTheme.typography.bodySmall)
-      if (!reserve.hourlyEnabled) {
-        ReserveButton(onClick = onConfigure, enabled = enabled) { Text(stringResource(R.string.reserve_current_enable)) }
-      }
     }
   }
 }
@@ -438,7 +450,15 @@ private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
     )
     Text(stringResource(R.string.reserve_hourly_enable), Modifier.padding(start = 12.dp).weight(1f))
   }
-  if (draft.hourlyEnabled) {
+  Row(verticalAlignment = Alignment.CenterVertically) {
+    Switch(
+      checked = draft.currentReserveEnabled,
+      onCheckedChange = { actions.draftChanged(draft.copy(currentReserveEnabled = it)) },
+      enabled = enabled
+    )
+    Text(stringResource(R.string.reserve_current_enable_label), Modifier.padding(start = 12.dp).weight(1f))
+  }
+  if (draft.currentReserveEnabled) {
     Text(stringResource(R.string.reserve_coefficient_label), style = MaterialTheme.typography.titleSmall)
     listOf(80, 70).forEach { retained ->
       Row(
@@ -454,7 +474,12 @@ private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
         Text(stringResource(R.string.reserve_retained, 100 - retained, retained), Modifier.padding(start = 8.dp))
       }
     }
-    Text(stringResource(R.string.reserve_hourly_setup_help), style = MaterialTheme.typography.bodySmall)
+  }
+  if (draft.usesAutomaticHistory) {
+    Text(
+      stringResource(if (draft.hourlyEnabled) R.string.reserve_hourly_setup_help else R.string.reserve_raw_dual_setup_help),
+      style = MaterialTheme.typography.bodySmall
+    )
   } else {
     Row(verticalAlignment = Alignment.CenterVertically) {
       Switch(checked = draft.manualBaseline, onCheckedChange = { actions.draftChanged(draft.copy(manualBaseline = it)) }, enabled = enabled)

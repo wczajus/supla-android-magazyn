@@ -421,4 +421,88 @@ class EnergyReserveRepositoryTest {
     }
     verify(exactly = 0) { store.write(any()) }
   }
+
+  @Test fun `switching only reserve count retains the cached hourly calculation`() {
+    val first = ReserveFlowReading(startsAt, listOf(0, 0, 0), listOf(0, 0, 0))
+    val progress = ReserveHourlyProgress(first, first, importedRaw = 10, exportedRaw = 20)
+    val previous = context.copy(reserve = period.copy(hourlyEnabled = true, currentReserveEnabled = true, hourlyProgress = progress))
+    val saved = repository.save(
+      previous,
+      ReserveDraft("200", period.startDate, period.validUntil, hourlyEnabled = true, currentReserveEnabled = false)
+    ).reserve!!
+    assertFalse(saved.currentReserveEnabled)
+    assertTrue(saved.hourlyEnabled)
+    assertEquals(progress, saved.hourlyProgress)
+    verify(exactly = 0) { provider.provide() }
+  }
+
+  private fun respondUnbalanced(latest: ElectricityMeasurement, first: ElectricityMeasurement = hourlyReading(startsAt)) {
+    every {
+      cloud.getElectricityMeasurements(remoteId = 42, order = "DESC", limit = 20, beforeTimestamp = now / 1000 + 1)
+    } returns Observable.just(listOf(latest))
+    every {
+      cloud.getElectricityMeasurements(remoteId = 42, order = "DESC", limit = 20, beforeTimestamp = startsAt / 1000 + 1)
+    } returns Observable.just(listOf(first))
+  }
+
+  @Test fun `two arithmetic reserves refresh from cumulative counters without downloading hourly history`() {
+    respondUnbalanced(hourlyReading(now, imported = 150, exported = 100))
+    val value = period.copy(initialRaw = 100, hourlyEnabled = false, currentReserveEnabled = true)
+    val refreshed = repository.refresh(context.copy(reserve = value)).reserve!!
+    val balance = ReserveCalculator.calculate(refreshed, now)
+    assertEquals(150L, balance.consumedRaw)
+    assertEquals(80L, balance.currentCreditedRaw)
+    assertEquals(30L, balance.currentRemainingRaw)
+    assertEquals(now, refreshed.flowLastReading!!.timestamp)
+    verify(exactly = 0) {
+      cloud.getElectricityMeasurements(remoteId = 42, order = "ASC", limit = 1000, afterTimestamp = any(), beforeTimestamp = any())
+    }
+  }
+
+  @Test fun `two arithmetic reserves estimate only the starting counters when midnight is between samples`() {
+    respondUnbalanced(hourlyReading(now, imported = 200), hourlyReading(startsAt - 300_000))
+    every {
+      cloud.getElectricityMeasurements(
+        remoteId = 42,
+        order = "ASC",
+        limit = 20,
+        afterTimestamp = startsAt / 1000 - 1,
+        beforeTimestamp = now / 1000 + 1
+      )
+    } returns Observable.just(listOf(hourlyReading(startsAt + 300_000, imported = 100)))
+    val value = period.copy(hourlyEnabled = false, currentReserveEnabled = true)
+    val refreshed = repository.refresh(context.copy(reserve = value)).reserve!!
+    assertEquals(50L, refreshed.flowBaseline!!.importedRaw)
+    assertTrue(refreshed.flowBaselineEstimated)
+    val balance = ReserveCalculator.calculate(refreshed, now)
+    assertEquals(150L, balance.consumedRaw)
+    assertTrue(balance.approximate)
+  }
+
+  @Test fun `two arithmetic reserves detect a counter reset and keep the invoice allowance intact`() {
+    val first = ReserveFlowReading(startsAt, listOf(100, 0, 0), listOf(100, 0, 0))
+    respondUnbalanced(hourlyReading(now, imported = 90, exported = 200))
+    val value = period.copy(hourlyEnabled = false, currentReserveEnabled = true, flowBaseline = first)
+    val refreshed = repository.refresh(context.copy(reserve = value)).reserve!!
+    assertTrue(refreshed.resetDetected)
+    assertEquals(period.initialRaw, refreshed.initialRaw)
+    assertEquals(ReserveStatus.COUNTER_RESET, ReserveCalculator.calculate(refreshed, now).status)
+  }
+
+  @Test fun `two arithmetic reserves reject data after an account switch`() {
+    every { profiles.findActiveProfile() } returnsMany listOf(Single.just(profile(7)), Single.just(profile(8)))
+    respondUnbalanced(hourlyReading(now, imported = 150, exported = 100))
+    assertThrows(ReserveProblem::class.java) {
+      repository.refresh(context.copy(reserve = period.copy(hourlyEnabled = false, currentReserveEnabled = true)))
+    }
+    verify(exactly = 0) { store.write(any()) }
+  }
+
+  @Test fun `saving two arithmetic reserves retains their initial counters for the same period`() {
+    val first = ReserveFlowReading(startsAt, listOf(100, 0, 0), listOf(50, 0, 0))
+    val previous = context.copy(reserve = period.copy(currentReserveEnabled = true, flowBaseline = first, flowLastReading = first))
+    val draft = ReserveDraft("200", period.startDate, period.validUntil, currentReserveEnabled = true)
+    assertEquals(first, repository.save(previous, draft).reserve!!.flowBaseline)
+    assertNull(repository.save(previous, draft.copy(startDate = "2026-05-02")).reserve!!.flowBaseline)
+  }
 }

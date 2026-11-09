@@ -55,9 +55,22 @@ Pierwsze przeliczenie pobiera historię stronicami. Kolejne używają punktu kon
 
 ## Konfiguracja i przejście między okresami
 
-Nowa konfiguracja i edycja domyślnie proponują dwa magazyny z bilansowaniem godzinowym. Wybierz potrącenie 20% albo 30% i zapisz. Do tej metody nie jest potrzebne ręczne wskazanie narastającego licznika — granicą jest pierwszy dzień okresu, a dane graniczne odtwarzamy z historii.
+Konfiguracja zawiera dwa niezależne przełączniki:
 
-Dotychczasowy zapis zachowuje dotychczasowy sposób obliczeń aż do świadomego zapisania nowej konfiguracji. Na ekranie pojawia się druga bateria i przycisk włączenia. Wyłączenie opcji godzinowej w formularzu udostępnia poprzedni tryb ręczny/historyczny dla jednej puli. Stare dane JSON są zgodne z nową wersją.
+| Magazyn bieżącego okresu | Bilansowanie godzinowe | Obliczenia |
+| --- | --- | --- |
+| wyłączony | wyłączone | jedna pula z faktury, pomniejszana o pełny pobór FAE |
+| wyłączony | włączone | jedna pula z faktury, pomniejszana o pobór po bilansie godzinowym; nowa pula nie jest naliczana |
+| włączony | wyłączone | dwie pule: pełny pobór FAE obciąża najpierw poprzednią, a nową zasila pełne oddanie RAE po potrąceniu |
+| włączony | włączone | dwie pule z poborem i oddaniem bilansowanymi godzinowo |
+
+Współczynnik 0,8/0,7 wybiera się tylko przy włączonym drugim magazynie. Pula z faktury jest gotowym saldem po wcześniejszym rozliczeniu i nie podlega ponownemu potrąceniu.
+
+Dla dwóch pul bez bilansowania godzinowego wystarczają narastające liczniki na początku okresu i najnowszy odczyt. Nie pobieramy całego roku ani nie oczekujemy na zamknięcie godziny. Jeżeli północ leży między próbkami, interpolujemy wyłącznie sześć liczników początkowych i oznaczamy wynik jako szacunek. Brak początku/końca jest jawnie oznaczany jako wynik częściowy. Resety i zmiana konta blokują zapis tak samo jak w trybie godzinowym.
+
+Dla jednej puli bez bilansowania zachowano ręczne wpisanie i wybór odczytu historycznego. Pozostałe warianty automatycznie pobierają potrzebne liczniki od pierwszego dnia okresu.
+
+Stary JSON bez osobnego ustawienia drugiego magazynu zachowuje poprzednią liczbę pul: dawny tryb godzinowy to dwie pule, dawny tryb zwykły to jedna. Jawnie zapisane ustawienia są niezależne. Wejście w edycję zachowuje oba przełączniki. Wyłączenie drugiego magazynu przy pozostawionym bilansowaniu godzinowym zachowuje obliczoną historię i zeruje tylko naliczanie nowej puli; jej ponowne włączenie wykorzystuje te same dane.
 
 Po ostatnim dniu ważności obliczenia tego okresu są zamykane. Niewykorzystana stara pula wygasa; nowa pula pozostaje wynikiem tego okresu i nie jest zerowana tylko dlatego, że wygasła stara. Po otrzymaniu kolejnej faktury użytkownik uzgadnia kwotę z dokumentem i edytuje początek/koniec okresu. Nowe obliczenie bieżącej puli zaczyna się od zera dla nowego okresu.
 
