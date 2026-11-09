@@ -8,6 +8,7 @@ import io.mockk.verify
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.junit.Assert.*
 import org.junit.Test
+import org.supla.android.R
 import org.supla.android.core.infrastructure.DateProvider
 import org.supla.android.core.networking.suplaclient.SuplaClientMessageHandlerWrapper
 import org.supla.android.tools.SuplaThreading
@@ -47,6 +48,41 @@ class EnergyReserveHistoryViewModelTest {
     model.updateDraft(model.getViewState().value.draft.copy(initialKwh = "300"))
     assertEquals(reading, model.getViewState().value.draft.historicalBaseline)
     verify(exactly = 0) { repository.save(any(), any()) }
+  }
+
+  @Test fun `empty allowance blocks saving even with a selected history reading`() {
+    val model = model()
+    model.updateDraft(model.getViewState().value.draft.copy(initialKwh = ""))
+    assertFalse(model.getViewState().value.canSave)
+    model.save()
+    val state = model.getViewState().value
+    assertTrue(state.editing)
+    assertEquals(R.string.reserve_error_amount, state.error)
+    verify(exactly = 0) { repository.save(any(), any()) }
+  }
+
+  @Test fun `valid allowance enables saving again after clearing and retyping in both modes`() {
+    val model = model()
+    for (manual in listOf(false, true)) {
+      for (amount in listOf("", " ", "0", "-5", "200,000001", "abc")) {
+        model.updateDraft(draft.copy(initialKwh = amount, manualBaseline = manual, baselineKwh = "100", historicalBaseline = reading))
+        assertFalse(model.getViewState().value.canSave)
+      }
+      model.updateDraft(model.getViewState().value.draft.copy(initialKwh = "200,5"))
+      val state = model.getViewState().value
+      assertTrue(state.canSave)
+      assertFalse(state.copy(busy = true).canSave)
+    }
+  }
+
+  @Test fun `save remains unavailable until a baseline is provided`() {
+    val model = model()
+    model.updateDraft(draft)
+    assertFalse(model.getViewState().value.canSave)
+    model.updateDraft(draft.copy(manualBaseline = true))
+    assertFalse(model.getViewState().value.canSave)
+    model.updateDraft(model.getViewState().value.draft.copy(baselineKwh = "0"))
+    assertTrue(model.getViewState().value.canSave)
   }
 
   @Test fun `search previews candidates without saving the reserve`() {

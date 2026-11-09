@@ -10,6 +10,7 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import org.junit.Assert.*
 import org.junit.Test
+import org.supla.android.R
 import org.supla.android.core.infrastructure.DateProvider
 import org.supla.android.data.source.ProfileRepository
 import org.supla.android.data.source.local.entity.ProfileEntity
@@ -136,6 +137,42 @@ class EnergyReserveRepositoryTest {
     assertThrows(ReserveProblem::class.java) { repository.save(context, ReserveDraft("200", "2026-05-01", "2027-04-30")) }
     verify(exactly = 0) { store.write(any()) }
     verify(exactly = 0) { provider.provide() }
+  }
+
+  @Test fun `search returns only the nearest complete reading on each side of midnight`() {
+    respondToSearch(
+      listOf(measurement(startsAt - 7_200_000), measurement(startsAt - 900_000), measurement(startsAt - 1_800_000)),
+      listOf(measurement(startsAt + 3_600_000), measurement(startsAt + 300_000), measurement(startsAt + 1_800_000))
+    )
+    val result = repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-05-01"), "2026-04-30", "2026-05-02")
+    assertEquals(listOf(startsAt + 300_000, startsAt - 900_000), result.map { it.timestamp })
+  }
+
+  @Test fun `search returns a single nearest sample when only the earlier side exists`() {
+    respondToSearch(listOf(measurement(startsAt - 3_600_000), measurement(startsAt - 600_000)), emptyList())
+    val result = repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-05-01"), "2026-04-30", "2026-05-02")
+    assertEquals(listOf(startsAt - 600_000), result.map { it.timestamp })
+  }
+
+  @Test fun `exact midnight replaces the earlier candidate and is offered only once`() {
+    respondToSearch(
+      listOf(measurement(startsAt - 600_000), measurement(startsAt)),
+      listOf(measurement(startsAt), measurement(startsAt + 600_000), measurement(startsAt + 1_200_000))
+    )
+    val result = repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-05-01"), "2026-04-30", "2026-05-02")
+    assertEquals(listOf(startsAt, startsAt + 600_000), result.map { it.timestamp })
+  }
+
+  @Test fun `invalid allowance never overwrites an existing reserve in either baseline mode`() {
+    val reading = measurement(startsAt).toReserveReading()
+    for (manual in listOf(true, false)) {
+      for (amount in listOf("", "   ", "0", "-1", "abc", "0,000001", "9223372036854775808")) {
+        val draft = ReserveDraft(amount, "2026-05-01", "2027-04-30", manual, "100", reading)
+        val error = assertThrows(ReserveProblem::class.java) { repository.save(context, draft) }
+        assertEquals(R.string.reserve_error_amount, error.messageRes)
+      }
+    }
+    verify(exactly = 0) { store.write(any()) }
   }
 
   @Test fun `search prefers nearest reading after midnight over a much older prior reading`() {
