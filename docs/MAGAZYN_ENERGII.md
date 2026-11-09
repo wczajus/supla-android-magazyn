@@ -1,6 +1,8 @@
 # SUPLA Magazyn
 
-Moduł dla Androida i licznika ZAMEL MEW-01. Monitoruje jedną pulę z faktury, pomniejszaną wyłącznie o energię czynną pobraną z sieci. Energia oddana i współczynnik 0,8 nie uczestniczą w obliczeniach.
+Moduł dla Androida i licznika ZAMEL MEW-01. Obsługuje poprzednią pulę z faktury i drugą pulę zgromadzoną w bieżącym okresie, z potrąceniem 20% albo 30%. Obie pule mogą korzystać z bilansu godzinowego. Szczegółowa [analiza danych i obliczeń](MAGAZYN_BILANS_GODZINOWY.md) opisuje metodę, jakość historii i granice modelu.
+
+W nowej konfiguracji lub przy edycji wybierz **Dwa magazyny i bilansowanie godzinowe**, ustaw potrącenie i zapisz. Obliczenia rozpoczynają się od pierwszego dnia okresu, bez ręcznego wyboru stanu licznika. Pierwsze pobranie historii może potrwać dłużej. Dotychczasowy zapis zachowuje starą metodę do zapisania nowej konfiguracji. Poniższy opis wyboru próbki dotyczy trybu jednej puli, dostępnego po wyłączeniu opcji godzinowej.
 
 ## Konfiguracja
 
@@ -17,7 +19,7 @@ Szukane daty są włączne. Nie proponujemy próbek z przyszłości ani z chwili
 
 ## Obliczenia i przechowywanie
 
-Saldo = pula początkowa − przyrost sumy trzech liczników FAE. Używamy surowych wartości API w całkowitych jednostkach 0,00001 kWh; bez Float, energii oddanej i syntetycznych próbek wykresu.
+W poprzednim trybie jednej puli: saldo = pula początkowa − przyrost sumy trzech liczników FAE. Używamy surowych wartości API w całkowitych jednostkach 0,00001 kWh; bez Float i syntetycznych próbek wykresu. W trybie godzinowym wykorzystujemy także liczniki RAE: po bilansowaniu potrącamy wybrany procent od oddania, a pobór pomniejsza najpierw pulę z faktury, potem nową pulę.
 
 Ekran pokazuje baterię, pozostałą pulę, wykorzystanie, cały pobór, pobór ponad pulę, termin i czas ostatniego pomiaru. Odświeżanie działa po otwarciu, ręcznie oraz po komunikacie licznika, najwyżej raz na minutę i przy widocznym ekranie. Aplikacja nie musi być uruchamiana codziennie.
 

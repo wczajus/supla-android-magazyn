@@ -282,4 +282,77 @@ class EnergyReserveRepositoryTest {
       )
     }
   }
+
+  private fun hourlyReading(timestamp: Long, imported: Long = 0, exported: Long = 0) = measurement(timestamp).copy(
+    phase1Fae = imported,
+    phase2Fae = 0,
+    phase3Fae = 0,
+    phase1Rae = exported,
+    phase2Rae = 0,
+    phase3Rae = 0
+  )
+
+  private fun respondHourly(vararg pages: List<ElectricityMeasurement>) {
+    every {
+      cloud.getElectricityMeasurements(remoteId = 42, order = "DESC", limit = 1, beforeTimestamp = startsAt / 1000 + 1)
+    } returns Observable.just(listOf(hourlyReading(startsAt)))
+    every {
+      cloud.getElectricityMeasurements(remoteId = 42, order = "ASC", limit = 1000, afterTimestamp = any(), beforeTimestamp = any())
+    } returnsMany pages.map { Observable.just(it) }
+  }
+
+  @Test fun `hourly refresh paginates even when server pages are smaller than requested`() {
+    every { dates.currentTimestamp() } returns startsAt + 2 * ReserveHourly.HOUR_MS
+    respondHourly(
+      listOf(hourlyReading(startsAt + ReserveHourly.HOUR_MS, exported = 1_000_000)),
+      listOf(hourlyReading(startsAt + 2 * ReserveHourly.HOUR_MS, imported = 500_000, exported = 1_000_000))
+    )
+    val refreshed = repository.refresh(context.copy(reserve = period.copy(hourlyEnabled = true)))
+    assertEquals(1_000_000L, refreshed.reserve!!.hourlyProgress!!.exportedRaw)
+    assertEquals(500_000L, refreshed.reserve!!.hourlyProgress!!.importedRaw)
+    verify(exactly = 2) {
+      cloud.getElectricityMeasurements(remoteId = 42, order = "ASC", limit = 1000, afterTimestamp = any(), beforeTimestamp = any())
+    }
+  }
+
+  @Test fun `hourly refresh refuses missing export phases without writing a false balance`() {
+    respondHourly(listOf(hourlyReading(startsAt + ReserveHourly.HOUR_MS).copy(phase3Rae = null)))
+    val error = assertThrows(ReserveProblem::class.java) { repository.refresh(context.copy(reserve = period.copy(hourlyEnabled = true))) }
+    assertEquals(R.string.reserve_error_hourly_phases, error.messageRes)
+    verify(exactly = 0) { store.write(any()) }
+  }
+
+  @Test fun `hourly refresh does not write partial results after a long history gap`() {
+    respondHourly(listOf(hourlyReading(startsAt + 2 * ReserveHourly.HOUR_MS)), emptyList())
+    val error = assertThrows(ReserveProblem::class.java) { repository.refresh(context.copy(reserve = period.copy(hourlyEnabled = true))) }
+    assertEquals(R.string.reserve_error_hourly_history, error.messageRes)
+    verify(exactly = 0) { store.write(any()) }
+  }
+
+  @Test fun `hourly refresh rejects a response after switching accounts`() {
+    every { profiles.findActiveProfile() } returnsMany listOf(Single.just(profile(7)), Single.just(profile(7)), Single.just(profile(8)))
+    respondHourly(listOf(hourlyReading(startsAt + ReserveHourly.HOUR_MS)))
+    assertThrows(ReserveProblem::class.java) { repository.refresh(context.copy(reserve = period.copy(hourlyEnabled = true))) }
+    verify(exactly = 0) { store.write(any()) }
+  }
+
+  @Test fun `hourly save accepts a coefficient without requiring a manual cumulative baseline`() {
+    val saved = repository.save(
+      context,
+      ReserveDraft("200", period.startDate, period.validUntil, hourlyEnabled = true, retainedPercent = 70)
+    )
+    assertTrue(saved.reserve!!.hourlyEnabled)
+    assertEquals(70, saved.reserve!!.retainedPercent)
+    assertNull(saved.reserve!!.hourlyProgress)
+    verify(exactly = 0) { provider.provide() }
+  }
+
+  @Test fun `hourly save retains totals for coefficient changes and resets them for a new period`() {
+    val first = ReserveFlowReading(startsAt, listOf(0, 0, 0), listOf(0, 0, 0))
+    val progress = ReserveHourlyProgress(first, first, exportedRaw = 100)
+    val previous = context.copy(reserve = period.copy(hourlyEnabled = true, hourlyProgress = progress))
+    val draft = ReserveDraft("200", period.startDate, period.validUntil, hourlyEnabled = true, retainedPercent = 70)
+    assertEquals(progress, repository.save(previous, draft).reserve!!.hourlyProgress)
+    assertNull(repository.save(previous, draft.copy(startDate = "2026-05-02")).reserve!!.hourlyProgress)
+  }
 }

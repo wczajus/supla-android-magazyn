@@ -98,6 +98,7 @@ private fun EnergyReserveContent(state: EnergyReserveState, actions: ReserveActi
       val reserve = state.context?.reserve
       if (reserve != null && state.balance != null) {
         ReserveOverview(reserve, state.balance)
+        ReserveCurrentOverview(reserve, state.balance, !state.busy, actions.edit)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
           ReserveButton(onClick = actions.refresh, enabled = !state.busy, modifier = Modifier.weight(1f)) {
             Text(stringResource(R.string.reserve_refresh))
@@ -171,6 +172,7 @@ private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+      Text(stringResource(R.string.reserve_previous_title), style = MaterialTheme.typography.titleMedium)
       ReserveBattery(fraction)
       Text(stringResource(statusRes), style = MaterialTheme.typography.titleMedium)
       if (available) {
@@ -195,18 +197,31 @@ private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
         if (balance.status == ReserveStatus.EXPIRED) ReserveMetric(R.string.reserve_expired_amount, balance.expiredRaw)
       }
       HorizontalDivider()
-      Text(
-        stringResource(if (reserve.manualBaseline) R.string.reserve_manual_source else R.string.reserve_history_source),
-        style = MaterialTheme.typography.labelLarge
-      )
-      Text(
-        stringResource(
-          R.string.reserve_baseline_details,
-          formatEnergy(reserve.baseline.importedRaw),
-          displayTime(reserve.baseline.timestamp, reserve.zoneId)
-        ),
-        style = MaterialTheme.typography.bodySmall
-      )
+      if (reserve.hourlyEnabled) {
+        Text(stringResource(R.string.reserve_hourly_source), style = MaterialTheme.typography.labelLarge)
+        reserve.hourlyProgress?.let { progress ->
+          Text(
+            stringResource(R.string.reserve_hourly_until, displayTime(progress.boundary.timestamp, reserve.zoneId)),
+            style = MaterialTheme.typography.bodySmall
+          )
+          if (progress.interpolatedBoundaries > 0) {
+            Text(stringResource(R.string.reserve_hourly_estimate), style = MaterialTheme.typography.bodySmall)
+          }
+        }
+      } else {
+        Text(
+          stringResource(if (reserve.manualBaseline) R.string.reserve_manual_source else R.string.reserve_history_source),
+          style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+          stringResource(
+            R.string.reserve_baseline_details,
+            formatEnergy(reserve.baseline.importedRaw),
+            displayTime(reserve.baseline.timestamp, reserve.zoneId)
+          ),
+          style = MaterialTheme.typography.bodySmall
+        )
+      }
       reserve.lastReading?.let {
         Text(
           stringResource(R.string.reserve_last_reading, displayTime(it.timestamp, reserve.zoneId)),
@@ -222,8 +237,45 @@ private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
       color = MaterialTheme.colorScheme.tertiary,
       style = MaterialTheme.typography.bodySmall
     )
-  } else if (lastTimestamp != null && balance.status == ReserveStatus.ACTIVE && System.currentTimeMillis() - lastTimestamp > 900_000) {
+  } else if (!reserve.hourlyEnabled && lastTimestamp != null && balance.status == ReserveStatus.ACTIVE &&
+    System.currentTimeMillis() - lastTimestamp > 900_000
+  ) {
     Text(stringResource(R.string.reserve_stale), color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.bodySmall)
+  }
+}
+
+@Composable
+private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalance, enabled: Boolean, onConfigure: () -> Unit) {
+  val available = reserve.hourlyEnabled && balance.status in listOf(ReserveStatus.ACTIVE, ReserveStatus.EXHAUSTED, ReserveStatus.EXPIRED)
+  val fraction = if (balance.currentCreditedRaw > 0) {
+    (balance.currentRemainingRaw.toDouble() / balance.currentCreditedRaw).toFloat().coerceIn(0f, 1f)
+  } else {
+    0f
+  }
+  Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Column(
+      Modifier.fillMaxWidth().padding(24.dp),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+      Text(stringResource(R.string.reserve_current_title), style = MaterialTheme.typography.titleMedium)
+      ReserveBattery(fraction, configured = reserve.hourlyEnabled)
+      if (available) {
+        Text(stringResource(R.string.reserve_current_remaining), style = MaterialTheme.typography.bodyMedium)
+        Text("${formatEnergy(balance.currentRemainingRaw)} kWh", style = MaterialTheme.typography.headlineLarge)
+        LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+        ReserveMetric(R.string.reserve_export_hourly, balance.exportedRaw)
+        ReserveMetric(R.string.reserve_current_credited, balance.currentCreditedRaw)
+        ReserveMetric(R.string.reserve_current_used, balance.currentUsedRaw)
+      } else {
+        Text(stringResource(if (reserve.hourlyEnabled) R.string.reserve_no_reading else R.string.reserve_current_enable_help))
+      }
+      Text(stringResource(R.string.reserve_retained, 100 - reserve.retainedPercent, reserve.retainedPercent))
+      Text(stringResource(R.string.reserve_fifo_help), style = MaterialTheme.typography.bodySmall)
+      if (!reserve.hourlyEnabled) {
+        ReserveButton(onClick = onConfigure, enabled = enabled) { Text(stringResource(R.string.reserve_current_enable)) }
+      }
+    }
   }
 }
 
@@ -291,41 +343,68 @@ private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
   ReserveDateInput(R.string.reserve_end_label, draft.validUntil, enabled) { actions.draftChanged(draft.copy(validUntil = it)) }
   Text(stringResource(R.string.reserve_timezone), style = MaterialTheme.typography.bodySmall)
   Row(verticalAlignment = Alignment.CenterVertically) {
-    Switch(checked = draft.manualBaseline, onCheckedChange = { actions.draftChanged(draft.copy(manualBaseline = it)) }, enabled = enabled)
-    Text(
-      stringResource(R.string.reserve_manual_label),
-      Modifier.padding(start = 12.dp).weight(1f),
-      style = MaterialTheme.typography.bodyMedium
+    Switch(
+      checked = draft.hourlyEnabled,
+      onCheckedChange = { actions.draftChanged(draft.copy(hourlyEnabled = it)) },
+      enabled = enabled
     )
+    Text(stringResource(R.string.reserve_hourly_enable), Modifier.padding(start = 12.dp).weight(1f))
   }
-  if (draft.manualBaseline) {
-    OutlinedTextField(
-      value = draft.baselineKwh,
-      onValueChange = { actions.draftChanged(draft.copy(baselineKwh = it)) },
-      label = { Text(stringResource(R.string.reserve_baseline_label)) },
-      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-      singleLine = true,
-      enabled = enabled,
-      colors = reserveFieldColors(),
-      modifier = Modifier.fillMaxWidth()
-    )
-    Text(stringResource(R.string.reserve_baseline_help), style = MaterialTheme.typography.bodySmall)
-  } else {
-    Text(stringResource(R.string.reserve_history_help), style = MaterialTheme.typography.bodySmall)
-    draft.historicalBaseline?.let { reading ->
-      Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-          Text(stringResource(R.string.reserve_history_selected), style = MaterialTheme.typography.labelLarge)
-          Text(displayTime(reading.timestamp, "Europe/Warsaw"), style = MaterialTheme.typography.titleMedium)
-          Text("${formatEnergy(reading.importedRaw, 5)} kWh")
-        }
+  if (draft.hourlyEnabled) {
+    Text(stringResource(R.string.reserve_coefficient_label), style = MaterialTheme.typography.titleSmall)
+    listOf(80, 70).forEach { retained ->
+      Row(
+        Modifier.fillMaxWidth().selectable(
+          selected = draft.retainedPercent == retained,
+          enabled = enabled,
+          role = Role.RadioButton,
+          onClick = { actions.draftChanged(draft.copy(retainedPercent = retained)) }
+        ).padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        RadioButton(selected = draft.retainedPercent == retained, onClick = null, enabled = enabled)
+        Text(stringResource(R.string.reserve_retained, 100 - retained, retained), Modifier.padding(start = 8.dp))
       }
     }
-    ReserveButton(onClick = {
-      showHistory = true
-      actions.searchHistory()
-    }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
-      Text(stringResource(R.string.reserve_history_choose))
+    Text(stringResource(R.string.reserve_hourly_setup_help), style = MaterialTheme.typography.bodySmall)
+  } else {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+      Switch(checked = draft.manualBaseline, onCheckedChange = { actions.draftChanged(draft.copy(manualBaseline = it)) }, enabled = enabled)
+      Text(
+        stringResource(R.string.reserve_manual_label),
+        Modifier.padding(start = 12.dp).weight(1f),
+        style = MaterialTheme.typography.bodyMedium
+      )
+    }
+    if (draft.manualBaseline) {
+      OutlinedTextField(
+        value = draft.baselineKwh,
+        onValueChange = { actions.draftChanged(draft.copy(baselineKwh = it)) },
+        label = { Text(stringResource(R.string.reserve_baseline_label)) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        singleLine = true,
+        enabled = enabled,
+        colors = reserveFieldColors(),
+        modifier = Modifier.fillMaxWidth()
+      )
+      Text(stringResource(R.string.reserve_baseline_help), style = MaterialTheme.typography.bodySmall)
+    } else {
+      Text(stringResource(R.string.reserve_history_help), style = MaterialTheme.typography.bodySmall)
+      draft.historicalBaseline?.let { reading ->
+        Card(Modifier.fillMaxWidth()) {
+          Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.reserve_history_selected), style = MaterialTheme.typography.labelLarge)
+            Text(displayTime(reading.timestamp, "Europe/Warsaw"), style = MaterialTheme.typography.titleMedium)
+            Text("${formatEnergy(reading.importedRaw, 5)} kWh")
+          }
+        }
+      }
+      ReserveButton(onClick = {
+        showHistory = true
+        actions.searchHistory()
+      }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.reserve_history_choose))
+      }
     }
   }
   ReserveButton(
