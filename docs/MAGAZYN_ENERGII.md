@@ -12,7 +12,7 @@ Wersja na Androida dla licznika ZAMEL MEW-01. Jedna ręcznie wprowadzana pula en
 
 ## Budowanie
 
-Projekt upstream wymaga JDK 21, platformy Android 37 i Build Tools 36.0.0. Biblioteki natywne są już w repozytorium. Workflow `.github/workflows/android-magazyn.yml` przygotowuje środowisko, kopiuje istniejące konfiguracje testowe Firebase, uruchamia testy i buduje uniwersalną APK. Udany push publikuje ją w osobnym prerelease; PR publikuje tylko artefakt i raporty testów.
+Projekt upstream wymaga JDK 21, platformy Android 37 i Build Tools 36.0.0. Biblioteki natywne są już w repozytorium. Workflow `.github/workflows/android-magazyn.yml` przygotowuje środowisko, kopiuje istniejące konfiguracje testowe Firebase, uruchamia testy i buduje uniwersalną APK. Workflow uruchamia się po pushu na gałęzie master i feature/**. Udany build publikuje APK w osobnym prerelease oraz zachowuje artefakt i raporty testów. Kontrole commita są widoczne także w PR; nie uruchamiamy drugi raz tego samego buildu dla zdarzenia pull_request.
 
 Wariant `internaltest` ma identyfikator `org.supla.android.t`, więc instaluje się obok oficjalnego `org.supla.android`. Nazwa na telefonie: **SUPLA Magazyn**. Po pierwszej instalacji wymaga osobnego dodania konta SUPLA; dane oficjalnej aplikacji nie są automatycznie przenoszone. Konfiguracja Firebase pochodzi z upstreamowego wariantu testowego; powiadomienia push wymagają osobnej weryfikacji i nie są kryterium ukończenia modułu magazynu.
 

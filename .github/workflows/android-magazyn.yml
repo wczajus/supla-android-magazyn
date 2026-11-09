@@ -3,8 +3,6 @@ name: SUPLA Magazyn APK
 on:
   push:
     branches: [master, 'feature/**']
-  pull_request:
-    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -24,10 +22,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
       - name: Install Android SDK
-        run: sdkmanager 'platforms;android-37' 'build-tools;36.0.0'
+        run: |
+          SDK_MANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          "$SDK_MANAGER" 'platforms;android-37' 'build-tools;36.0.0'
       - name: Configure test build
         shell: bash
         run: |
