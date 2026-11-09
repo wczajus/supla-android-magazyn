@@ -21,3 +21,26 @@ Wariant `internaltest` ma identyfikator `org.supla.android.t`, więc instaluje s
 Gałąź robocza: `feature/magazyn-energii`. Zmiany trafiają do własnego repozytorium, przez PR do `master`.
 
 Certyfikat testowy SHA-256: `5F:16:6D:6C:18:94:2B:A5:93:ED:09:F1:25:EA:24:98:2A:A6:E2:EA:2F:84:1D:27:88:C2:6C:D3:9C:BD:32:C0`. Gradle jawnie wskazuje plik `.gradle/magazyn-test-signing.p12`, a workflow sprawdza certyfikat gotowej APK przed publikacją. Lokalnie przed budowaniem należy wykonać `mkdir -p .gradle` i `base64 --decode ci/test-signing.p12.b64 > .gradle/magazyn-test-signing.p12`, a konfiguracje Firebase skopiować tak jak w workflow.
+
+## Dostępny moduł — pierwsza wersja
+
+Otwórz szczegóły kanału licznika energii, następnie zakładkę **Magazyn**. Dotyczy samodzielnego kanału licznika, nie grup urządzeń. Przewidziany dla ZAMEL MEW-01 z trzema licznikami energii czynnej pobranej z sieci.
+
+1. Wpisz dostępną pulę z faktury w kWh, pierwszy dzień okresu oraz ostatni dzień ważności (włącznie).
+2. Domyślnie aplikacja odczyta stan początkowy z historii SUPLI. Dopuszcza pomiar najwyżej dwie minuty przed początkiem okresu, pokazując jego faktyczny czas i oznaczając przybliżenie. Nie korzysta z interpolowanych danych wykresu.
+3. Gdy historii brakuje, wybierz ręczny stan początkowy: narastający pobór z sieci, łącznie z trzech faz, na początek wskazanego okresu. To osobna wartość od salda z faktury.
+4. Po zapisaniu widzisz pozostałą pulę, wykorzystanie, cały pobór i ewentualny pobór ponad pulę. Energia oddana nie jest doliczana. Obliczenia używają całkowitych jednostek 0,00001 kWh, bez zaokrągleń Float.
+5. Aktualizacja następuje po otwarciu ekranu, ręcznie oraz po komunikacie licznika (najwyżej raz na minutę). Aplikacja nie musi pracować stale; używa różnicy narastających liczników.
+
+Daty interpretujemy w strefie Europe/Warsaw, z uwzględnieniem zmiany czasu. Po końcu ważności nie odejmujemy późniejszego poboru — odczyt jest ograniczony do końca okresu. Gdy nie ma próbki dokładnie na granicy, niewykorzystana reszta jest oznaczona jako szacunek z ostatniego wcześniejszego pomiaru.
+
+Konfiguracja i ostatni pomiar są lokalne, osobne dla profilu i kanału. Przy braku sieci pozostaje ostatnio zapisane saldo z datą pomiaru i komunikatem o nieudanym odświeżeniu. Usunięcie profilu usuwa też jego magazyny. Edycja zastępuje konfigurację jednej puli; nie prowadzimy archiwum faktur ani synchronizacji między telefonami.
+
+Spadek sumy lub jednej z faz między dostępnymi odczytami blokuje saldo do korekty. Samo zwiększenie początkowej puli nie kasuje tego ostrzeżenia. Reset i ponowny wzrost w przerwie bez dostępnych pomiarów mogą pozostać niewykryte; nie odtwarzamy pełnej historii resetów. Saldo jest pomocniczym oszacowaniem według sumy poboru z faz, a nie wierną symulacją rozliczenia dostawcy i bilansowania.
+
+## Sprawdzenie na telefonie
+
+- Zainstaluj APK z najnowszego prerelease i dodaj swoje konto SUPLA.
+- Sprawdź, czy na MEW-01 działa zakładka Magazyn w jasnym i ciemnym motywie.
+- Dla znanego okresu porównaj przyrost poboru z ręcznym wyliczeniem. Sprawdź też komunikat przy wyłączonym internecie.
+- Dane własnego konta i rzeczywisty MEW-01 wymagają sprawdzenia na telefonie użytkownika. Testy automatyczne korzystają z fikcyjnych odczytów i nie łączą się z prywatną instalacją.

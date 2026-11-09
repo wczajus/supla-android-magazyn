@@ -245,7 +245,7 @@ class ProvideChannelDetailTypeUseCaseTest {
   fun `should provide detail for electricity meter`() {
     testDetailType(
       SuplaFunction.ELECTRICITY_METER,
-      StandardDetailType(listOf(DetailPage.EM_GENERAL, DetailPage.EM_HISTORY, DetailPage.EM_SETTINGS))
+      StandardDetailType(listOf(DetailPage.EM_GENERAL, DetailPage.EM_RESERVE, DetailPage.EM_HISTORY, DetailPage.EM_SETTINGS))
     )
   }
 

@@ -38,7 +38,7 @@ jobs:
           chmod 600 .gradle/magazyn-test-signing.p12
           chmod +x gradlew
       - name: Build and run unit tests
-        run: ./gradlew :app:assembleInternaltest :app:testDebugUnitTest -PmagazynVersionCode=$((10000 + GITHUB_RUN_NUMBER)) --stacktrace --max-workers=2 -Dorg.gradle.jvmargs=-Xmx4g -Dkotlin.daemon.jvm.options=-Xmx2g
+        run: ./gradlew :app:spotlessCheck :app:assembleInternaltest :app:testDebugUnitTest -PmagazynVersionCode=$((10000 + GITHUB_RUN_NUMBER)) --stacktrace --max-workers=2 -Dorg.gradle.jvmargs=-Xmx4g -Dkotlin.daemon.jvm.options=-Xmx2g
       - name: Prepare universal APK
         shell: bash
         run: |
