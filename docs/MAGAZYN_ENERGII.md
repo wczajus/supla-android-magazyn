@@ -44,3 +44,5 @@ Spadek sumy lub jednej z faz między dostępnymi odczytami blokuje saldo do kore
 - Sprawdź, czy na MEW-01 działa zakładka Magazyn w jasnym i ciemnym motywie.
 - Dla znanego okresu porównaj przyrost poboru z ręcznym wyliczeniem. Sprawdź też komunikat przy wyłączonym internecie.
 - Dane własnego konta i rzeczywisty MEW-01 wymagają sprawdzenia na telefonie użytkownika. Testy automatyczne korzystają z fikcyjnych odczytów i nie łączą się z prywatną instalacją.
+
+Workflow sprawdza formatowanie przez `:app:spotlessCheck`, buduje `:app:assembleInternaltest` i uruchamia cały zestaw testów jako `:app:testInternaltestUnitTest`, czyli na wariancie odpowiadającym instalowanej APK. Pozwala to współdzielić kompilację aplikacji między budowaniem a testami, bez drugiego kompilowania wariantu debug.

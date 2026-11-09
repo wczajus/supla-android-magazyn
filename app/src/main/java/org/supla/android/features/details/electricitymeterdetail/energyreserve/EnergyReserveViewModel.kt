@@ -36,13 +36,22 @@ class EnergyReserveViewModel @Inject constructor(
 ) : BaseViewModel<EnergyReserveState, EnergyReserveEvent>(EnergyReserveState(), threading) {
   private var remoteId: Int = 0
   private var lastRefreshAt: Long = 0
+  private var visible = false
+
+  override fun onStart() {
+    visible = true
+  }
+
+  override fun onStop() {
+    visible = false
+  }
 
   init {
     setupSuplaClientMessageHandler(messageHandler)
   }
 
   override fun handleSuplaMessage(message: SuplaClientMessage) {
-    if (message is SuplaClientMessage.ChannelDataChanged && message.channelId == remoteId &&
+    if (visible && message is SuplaClientMessage.ChannelDataChanged && message.channelId == remoteId &&
       !currentState().editing && dateProvider.currentTimestamp() - lastRefreshAt >= 60_000
     ) {
       refresh()
@@ -106,8 +115,8 @@ class EnergyReserveViewModel @Inject constructor(
     runOperation({
       repository.delete(remoteId, profileId)
       repository.loadCache(remoteId)
-    }) {
-      updateState { EnergyReserveState(context = it) }
+    }) { context ->
+      updateState { EnergyReserveState(context = context) }
     }
   }
 

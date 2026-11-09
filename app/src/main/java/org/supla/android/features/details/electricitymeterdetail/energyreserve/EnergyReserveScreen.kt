@@ -38,6 +38,9 @@ import kotlin.math.roundToInt
 
 @Composable
 fun EnergyReserveScreen(item: ItemBundle, viewModel: EnergyReserveViewModel = hiltViewModel()) {
+  DisposableEffect(viewModel) {
+    onDispose { viewModel.onStop() }
+  }
   ViewModelHost(viewModel = viewModel, onResume = { viewModel.load(item.remoteId) }) {
     EnergyReserveContent(
       state = it,
