@@ -71,29 +71,43 @@ class EnergyReserveRepository @Inject constructor(
     return context.copy(reserve = updated)
   }
 
+  fun rebuildHistory(context: ReserveContext): ReserveContext {
+    ensureProfile(context.profileId)
+    val reserve = context.reserve ?: return context
+    return if (reserve.hourlyEnabled) refreshHourly(context, reserve.copy(hourlyProgress = null)) else refresh(context)
+  }
+
   private fun refreshHourly(context: ReserveContext, reserve: EnergyReserve): ReserveContext {
     val cutoff = minOf(dateProvider.currentTimestamp(), reserve.expiresAt)
     if (reserve.resetDetected || cutoff < reserve.startsAt) return context
-    val existing = reserve.hourlyProgress
+    val existing = reserve.hourlyProgress?.takeIf { it.calculationVersion == ReserveHourly.CALCULATION_VERSION }
     val start = existing?.boundary?.timestamp ?: reserve.startsAt
-    if (existing != null && start + ReserveHourly.HOUR_MS > cutoff) return context
+    if (existing != null && ReserveHourly.nextHour(start) > cutoff) return context
     val service = cloudProvider.provide()
     val readings = mutableListOf<ReserveFlowReading>()
+    val incomplete = existing?.incompleteReadings?.toMutableSet() ?: mutableSetOf()
+    fun complete(measurement: ElectricityMeasurement): ReserveFlowReading? = try {
+      measurement.toReserveFlow()
+    } catch (_: ReserveProblem) {
+      if (measurement.date.time in reserve.startsAt..cutoff) incomplete += measurement.date.time
+      null
+    }
     var cursor: Long
     if (existing == null) {
       val before = service.getElectricityMeasurements(
         remoteId = context.channelId,
         order = "DESC",
-        limit = 1,
+        limit = 20,
         beforeTimestamp = start / 1000 + 1
-      ).blockingFirst().firstOrNull { it.date.time <= start } ?: throw ReserveProblem(R.string.reserve_error_hourly_history)
-      readings += before.toReserveFlow()
-      cursor = before.date.time / 1000
+      ).blockingFirst().filter { it.date.time <= start }.sortedByDescending { it.date.time }
+        .firstNotNullOfOrNull { complete(it) }
+      if (before != null) readings += before
+      cursor = before?.timestamp?.div(1000) ?: (start / 1000 - 1)
     } else {
       readings += existing.boundary
       cursor = start / 1000
     }
-    val upper = minOf(dateProvider.currentTimestamp(), cutoff + ReserveHourly.MAX_SAMPLE_GAP_MS)
+    val upper = dateProvider.currentTimestamp()
     var pages = 0
     while (true) {
       ensureProfile(context.profileId)
@@ -106,12 +120,12 @@ class EnergyReserveRepository @Inject constructor(
       ).blockingFirst().filter { it.date.time / 1000 > cursor && it.date.time <= upper }.sortedBy { it.date.time }
       ensureProfile(context.profileId)
       if (page.isEmpty()) break
-      readings += page.distinctBy { it.date.time }.map { it.toReserveFlow() }
+      readings += page.distinctBy { it.date.time }.mapNotNull { complete(it) }
       val next = page.last().date.time / 1000
       if (next <= cursor || ++pages > 600) throw ReserveProblem(R.string.reserve_error_hourly_history)
       cursor = next
       // Servers may cap the requested page size. Continue until the bound or an empty page.
-      if (page.last().date.time >= cutoff) break
+      if (readings.lastOrNull()?.timestamp?.let { it >= cutoff } == true) break
     }
     val progress = try {
       ReserveHourly.advance(existing, readings, reserve.startsAt, cutoff)
@@ -120,11 +134,16 @@ class EnergyReserveRepository @Inject constructor(
       write(reset)
       return context.copy(reserve = reset)
     } catch (_: ReserveHourlyGap) {
-      throw ReserveProblem(R.string.reserve_error_hourly_history)
+      val message = if (incomplete.isNotEmpty() && readings.none { it.timestamp >= reserve.startsAt }) {
+        R.string.reserve_error_hourly_phases
+      } else {
+        R.string.reserve_error_hourly_history
+      }
+      throw ReserveProblem(message)
     }
     ensureProfile(context.profileId)
     val updated = reserve.copy(
-      hourlyProgress = progress,
+      hourlyProgress = progress.copy(incompleteReadings = incomplete.sorted()),
       lastReading = ReserveReading(progress.boundary.timestamp, progress.boundary.importedRaw, progress.boundary.imports)
     )
     write(updated)

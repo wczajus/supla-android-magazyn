@@ -86,6 +86,14 @@ class EnergyReserveViewModel @Inject constructor(
     runOperation({ repository.refresh(context) }) { showContext(it) }
   }
 
+  fun rebuildHistory() {
+    val state = currentState()
+    val context = state.context ?: return
+    if (state.busy) return
+    lastRefreshAt = dateProvider.currentTimestamp()
+    runOperation({ repository.rebuildHistory(context) }) { showContext(it) }
+  }
+
   fun edit() {
     val reserve = currentState().context?.reserve
     val draft = if (reserve == null) {

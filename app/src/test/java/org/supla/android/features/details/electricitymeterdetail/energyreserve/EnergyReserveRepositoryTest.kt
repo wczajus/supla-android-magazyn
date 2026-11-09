@@ -294,7 +294,7 @@ class EnergyReserveRepositoryTest {
 
   private fun respondHourly(vararg pages: List<ElectricityMeasurement>) {
     every {
-      cloud.getElectricityMeasurements(remoteId = 42, order = "DESC", limit = 1, beforeTimestamp = startsAt / 1000 + 1)
+      cloud.getElectricityMeasurements(remoteId = 42, order = "DESC", limit = 20, beforeTimestamp = startsAt / 1000 + 1)
     } returns Observable.just(listOf(hourlyReading(startsAt)))
     every {
       cloud.getElectricityMeasurements(remoteId = 42, order = "ASC", limit = 1000, afterTimestamp = any(), beforeTimestamp = any())
@@ -315,18 +315,28 @@ class EnergyReserveRepositoryTest {
     }
   }
 
-  @Test fun `hourly refresh refuses missing export phases without writing a false balance`() {
-    respondHourly(listOf(hourlyReading(startsAt + ReserveHourly.HOUR_MS).copy(phase3Rae = null)))
-    val error = assertThrows(ReserveProblem::class.java) { repository.refresh(context.copy(reserve = period.copy(hourlyEnabled = true))) }
-    assertEquals(R.string.reserve_error_hourly_phases, error.messageRes)
-    verify(exactly = 0) { store.write(any()) }
+  @Test fun `hourly refresh bridges incomplete phase rows and records the missing samples`() {
+    respondHourly(
+      listOf(
+        hourlyReading(startsAt + ReserveHourly.HOUR_MS).copy(phase3Rae = null),
+        hourlyReading(startsAt + 2 * ReserveHourly.HOUR_MS, imported = 100, exported = 200)
+      ),
+      emptyList()
+    )
+    val result = repository.refresh(context.copy(reserve = period.copy(hourlyEnabled = true))).reserve!!
+    assertEquals(listOf(startsAt + ReserveHourly.HOUR_MS), result.hourlyProgress!!.incompleteReadings)
+    assertEquals(100L, result.hourlyProgress!!.boundary.importedRaw)
+    assertEquals(200L, result.hourlyProgress!!.boundary.exportedRaw)
+    assertEquals(1, result.hourlyProgress!!.gaps.size)
+    verify(exactly = 1) { store.write(any()) }
   }
 
-  @Test fun `hourly refresh does not write partial results after a long history gap`() {
-    respondHourly(listOf(hourlyReading(startsAt + 2 * ReserveHourly.HOUR_MS)), emptyList())
-    val error = assertThrows(ReserveProblem::class.java) { repository.refresh(context.copy(reserve = period.copy(hourlyEnabled = true))) }
-    assertEquals(R.string.reserve_error_hourly_history, error.messageRes)
-    verify(exactly = 0) { store.write(any()) }
+  @Test fun `hourly refresh continues after a long gap and saves its diagnostics`() {
+    respondHourly(listOf(hourlyReading(startsAt + 2 * ReserveHourly.HOUR_MS, imported = 50, exported = 100)), emptyList())
+    val result = repository.refresh(context.copy(reserve = period.copy(hourlyEnabled = true))).reserve!!
+    assertEquals(50L, result.hourlyProgress!!.exportedRaw)
+    assertEquals(ReserveGapMethod.UNIFORM, result.hourlyProgress!!.gaps.single().method)
+    verify(exactly = 1) { store.write(any()) }
   }
 
   @Test fun `hourly refresh rejects a response after switching accounts`() {
@@ -354,5 +364,61 @@ class EnergyReserveRepositoryTest {
     val draft = ReserveDraft("200", period.startDate, period.validUntil, hourlyEnabled = true, retainedPercent = 70)
     assertEquals(progress, repository.save(previous, draft).reserve!!.hourlyProgress)
     assertNull(repository.save(previous, draft.copy(startDate = "2026-05-02")).reserve!!.hourlyProgress)
+  }
+
+  @Test fun `full rebuild replaces an estimate when real hourly measurements have arrived`() {
+    every { dates.currentTimestamp() } returns startsAt + 2 * ReserveHourly.HOUR_MS
+    respondHourly(listOf(hourlyReading(startsAt + 2 * ReserveHourly.HOUR_MS, imported = 10, exported = 10)))
+    val estimated = repository.refresh(context.copy(reserve = period.copy(hourlyEnabled = true)))
+    assertEquals(1, estimated.reserve!!.hourlyProgress!!.gaps.size)
+    respondHourly(
+      listOf(
+        hourlyReading(startsAt + ReserveHourly.HOUR_MS, exported = 10),
+        hourlyReading(startsAt + 2 * ReserveHourly.HOUR_MS, imported = 10, exported = 10)
+      )
+    )
+    val rebuilt = repository.rebuildHistory(estimated).reserve!!
+    assertTrue(rebuilt.hourlyProgress!!.gaps.isEmpty())
+    assertEquals(10L, rebuilt.hourlyProgress!!.importedRaw)
+    assertEquals(10L, rebuilt.hourlyProgress!!.exportedRaw)
+    assertEquals(period.initialRaw, rebuilt.initialRaw)
+    assertEquals(80, rebuilt.retainedPercent)
+  }
+
+  @Test fun `missing first measurement returns a clearly marked partial period`() {
+    every {
+      cloud.getElectricityMeasurements(remoteId = 42, order = "DESC", limit = 20, beforeTimestamp = startsAt / 1000 + 1)
+    } returns Observable.just(emptyList())
+    every {
+      cloud.getElectricityMeasurements(remoteId = 42, order = "ASC", limit = 1000, afterTimestamp = any(), beforeTimestamp = any())
+    } returnsMany listOf(
+      Observable.just(listOf(hourlyReading(startsAt + 600_000), hourlyReading(startsAt + 2 * ReserveHourly.HOUR_MS, imported = 100))),
+      Observable.just(emptyList())
+    )
+    val result = repository.refresh(context.copy(reserve = period.copy(hourlyEnabled = true))).reserve!!
+    assertEquals(startsAt + 600_000, result.hourlyProgress!!.missingStartUntil)
+    assertTrue(ReserveCalculator.calculate(result, now).partial)
+  }
+
+  @Test fun `older calculation version is rebuilt instead of silently keeping old quality information`() {
+    every { dates.currentTimestamp() } returns startsAt + 2 * ReserveHourly.HOUR_MS
+    val first = ReserveFlowReading(startsAt, listOf(0, 0, 0), listOf(0, 0, 0))
+    val old = ReserveHourlyProgress(first, first.copy(timestamp = startsAt + 2 * ReserveHourly.HOUR_MS), importedRaw = 999)
+    respondHourly(listOf(hourlyReading(startsAt + 2 * ReserveHourly.HOUR_MS, imported = 10)))
+    val result = repository.refresh(context.copy(reserve = period.copy(hourlyEnabled = true, hourlyProgress = old))).reserve!!
+    assertEquals(10L, result.hourlyProgress!!.importedRaw)
+    assertEquals(ReserveHourly.CALCULATION_VERSION, result.hourlyProgress!!.calculationVersion)
+  }
+
+  @Test fun `failed full rebuild keeps the previously saved estimate`() {
+    val first = ReserveFlowReading(startsAt, listOf(0, 0, 0), listOf(0, 0, 0))
+    val old = ReserveHourlyProgress(first, first, importedRaw = 50, calculationVersion = ReserveHourly.CALCULATION_VERSION)
+    every {
+      cloud.getElectricityMeasurements(remoteId = 42, order = "DESC", limit = 20, beforeTimestamp = startsAt / 1000 + 1)
+    } throws IllegalStateException("offline")
+    assertThrows(IllegalStateException::class.java) {
+      repository.rebuildHistory(context.copy(reserve = period.copy(hourlyEnabled = true, hourlyProgress = old)))
+    }
+    verify(exactly = 0) { store.write(any()) }
   }
 }
