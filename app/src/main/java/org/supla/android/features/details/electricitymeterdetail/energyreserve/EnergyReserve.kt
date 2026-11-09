@@ -56,13 +56,17 @@ data class EnergyReserve(
   val baseline: ReserveReading,
   val manualBaseline: Boolean,
   val lastReading: ReserveReading? = null,
-  val resetDetected: Boolean = false
+  val resetDetected: Boolean = false,
+  val hourlyEnabled: Boolean = false,
+  val retainedPercent: Int = 80,
+  val hourlyProgress: ReserveHourlyProgress? = null
 ) {
   val startsAt: Long get() = LocalDate.parse(startDate).atStartOfDay(ZoneId.of(zoneId)).toInstant().toEpochMilli()
   val readingStartsAt: Long get() = maxOf(startsAt, baseline.timestamp)
   val expiresAt: Long get() = LocalDate.parse(validUntil).plusDays(1).atStartOfDay(ZoneId.of(zoneId)).toInstant().toEpochMilli()
 
   init {
+    require(retainedPercent in listOf(70, 80))
     require(initialRaw > 0)
     require(expiresAt > startsAt)
     require(baseline.timestamp < expiresAt)
@@ -77,11 +81,16 @@ data class ReserveBalance(
   val usedRaw: Long = 0,
   val remainingRaw: Long = 0,
   val excessRaw: Long = 0,
-  val expiredRaw: Long = 0
+  val expiredRaw: Long = 0,
+  val exportedRaw: Long = 0,
+  val currentCreditedRaw: Long = 0,
+  val currentUsedRaw: Long = 0,
+  val currentRemainingRaw: Long = 0
 )
 
 object ReserveCalculator {
   fun calculate(reserve: EnergyReserve, now: Long): ReserveBalance {
+    if (reserve.hourlyEnabled) return calculateHourly(reserve, now)
     if (now < reserve.readingStartsAt) return ReserveBalance(ReserveStatus.NOT_STARTED)
     if (reserve.resetDetected) return ReserveBalance(ReserveStatus.COUNTER_RESET)
     val reading = reserve.lastReading ?: return ReserveBalance(ReserveStatus.NO_READING)
@@ -103,6 +112,37 @@ object ReserveCalculator {
       remainingRaw = if (expired) 0 else remaining,
       excessRaw = (consumed - reserve.initialRaw).coerceAtLeast(0),
       expiredRaw = if (expired) remaining else 0
+    )
+  }
+
+  private fun calculateHourly(reserve: EnergyReserve, now: Long): ReserveBalance {
+    if (now < reserve.startsAt) return ReserveBalance(ReserveStatus.NOT_STARTED)
+    if (reserve.resetDetected) return ReserveBalance(ReserveStatus.COUNTER_RESET)
+    val progress = reserve.hourlyProgress ?: return ReserveBalance(ReserveStatus.NO_READING)
+    if (progress.initial.timestamp != reserve.startsAt || progress.boundary.timestamp > minOf(now, reserve.expiresAt)) {
+      return ReserveBalance(ReserveStatus.INVALID_READING)
+    }
+    val consumed = progress.importedRaw
+    val remaining = (reserve.initialRaw - consumed).coerceAtLeast(0)
+    val credit = ReserveHourly.credited(progress.exportedRaw, reserve.retainedPercent)
+    val afterPrevious = (consumed - reserve.initialRaw).coerceAtLeast(0)
+    val currentUsed = minOf(afterPrevious, credit)
+    val expired = now >= reserve.expiresAt
+    return ReserveBalance(
+      status = when {
+        expired -> ReserveStatus.EXPIRED
+        remaining == 0L -> ReserveStatus.EXHAUSTED
+        else -> ReserveStatus.ACTIVE
+      },
+      consumedRaw = consumed,
+      usedRaw = minOf(consumed, reserve.initialRaw),
+      remainingRaw = if (expired) 0 else remaining,
+      expiredRaw = if (expired) remaining else 0,
+      excessRaw = (afterPrevious - credit).coerceAtLeast(0),
+      exportedRaw = progress.exportedRaw,
+      currentCreditedRaw = credit,
+      currentUsedRaw = currentUsed,
+      currentRemainingRaw = credit - currentUsed
     )
   }
 }

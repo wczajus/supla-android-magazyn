@@ -2,14 +2,14 @@
 <resources>
   <string name="reserve_tab">Reserve</string>
   <string name="reserve_title">Energy reserve</string>
-  <string name="reserve_description">Track one allowance from your electricity bill. Only energy imported from the grid reduces this balance. Exported energy is excluded.</string>
+  <string name="reserve_description">Track the previous invoice allowance and energy earned in the current period.</string>
   <string name="reserve_empty">Add the allowance from your bill</string>
   <string name="reserve_configure">Configure reserve</string>
   <string name="reserve_remaining">Remaining</string>
   <string name="reserve_initial">Initial allowance</string>
   <string name="reserve_used">Used from allowance</string>
   <string name="reserve_imported">Grid import in this period</string>
-  <string name="reserve_excess">Import beyond allowance</string>
+  <string name="reserve_excess">Import outside both allowances</string>
   <string name="reserve_expired_amount">Unused at last reading</string>
   <string name="reserve_active">Available allowance</string>
   <string name="reserve_exhausted">Allowance used up</string>
@@ -42,7 +42,7 @@
   <string name="reserve_baseline_help">Enter the cumulative grid import reading at the start of this period, summed across all three phases. This is a meter reading, separate from the allowance on your bill.</string>
   <string name="reserve_history_help">Search readings near the requested midnight and explicitly confirm one. You can set any search date range. The actual date, time and counter value are shown before saving.</string>
   <string name="reserve_edit_help">Saving replaces the current configuration and recalculates the entire period from the new initial counter.</string>
-  <string name="reserve_counter_help">Uses the sum of the three active energy import counters. This is an aid for tracking your allowance, rather than a supplier billing calculation. A reset between unavailable measurements may require a manual correction.</string>
+  <string name="reserve_counter_help">Allowances are settlement estimates stored on this phone. Reconcile the next invoice by editing the period and invoice allowance; allowances are not rolled over automatically.</string>
   <string name="reserve_error_channel">This meter is no longer available in the active account.</string>
   <string name="reserve_error_profile">Account changed. Reopen the meter to load the correct reserve.</string>
   <string name="reserve_error_storage">Cannot read or save the local configuration. Retry, or remove this reserve and configure it again.</string>
@@ -68,4 +68,24 @@
   <string name="reserve_error_history_selection">Choose and confirm a historical reading within the validity period, or enter the initial counter manually.</string>
   <string name="reserve_error_history_range">Check the period and search dates. The search end cannot precede its start.</string>
   <string name="reserve_history_bounds">Readings are limited to the selected dates, before the validity deadline and no later than now.</string>
+  <string name="reserve_previous_title">Previous period — invoice allowance</string>
+  <string name="reserve_current_title">Current period — new allowance</string>
+  <string name="reserve_current_remaining">Available from the current period</string>
+  <string name="reserve_export_hourly">Export after hourly balancing</string>
+  <string name="reserve_current_credited">Credited after deduction</string>
+  <string name="reserve_current_used">Used from the new allowance</string>
+  <string name="reserve_total_available">Total available in both allowances</string>
+  <string name="reserve_retained">Deduction %1$d%% — %2$d%% available</string>
+  <string name="reserve_fifo_help">Hourly balanced import uses the invoice allowance first. Only import exceeding it reduces the allowance earned in the current period.</string>
+  <string name="reserve_hourly_source">Both allowances: hourly balancing</string>
+  <string name="reserve_hourly_until">Completed hours settled through: %1$s</string>
+  <string name="reserve_hourly_estimate">Estimate: hour boundaries were reconstructed from nearby measurements. The result may differ from the supplier settlement.</string>
+  <string name="reserve_hourly_enable">Two allowances with hourly balancing</string>
+  <string name="reserve_coefficient_label">Exported energy deduction</string>
+  <string name="reserve_hourly_setup_help">Both allowances are calculated from midnight on the first day through the last day of the period. We download all three phases of import and export history. The first calculation may take longer. Set a new period and allowance when the next invoice arrives.</string>
+  <string name="reserve_current_enable_help">Configure hourly balancing to calculate energy earned since the first day of the period.</string>
+  <string name="reserve_current_enable">Enable the second allowance</string>
+  <string name="reserve_error_hourly_history">Insufficient history for hourly balancing. Measurements are required from the period start, without gaps longer than one hour. The previous calculation is retained.</string>
+  <string name="reserve_error_hourly_phases">Hourly balancing requires import and export counters for all three phases. Missing values are not replaced with zero.</string>
+  <string name="reserve_error_coefficient" formatted="false">Choose a deduction of 20% or 30%.</string>
 </resources>

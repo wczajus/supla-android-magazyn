@@ -94,4 +94,12 @@ class EnergyReserveHistoryViewModelTest {
     assertTrue(model.getViewState().value.historySearched)
     verify(exactly = 0) { repository.save(any(), any()) }
   }
+
+  @Test fun `hourly mode requires an allowance but no legacy baseline selection`() {
+    val model = model()
+    model.updateDraft(draft.copy(hourlyEnabled = true))
+    assertTrue(model.getViewState().value.canSave)
+    model.updateDraft(draft.copy(hourlyEnabled = true, initialKwh = ""))
+    assertFalse(model.getViewState().value.canSave)
+  }
 }
