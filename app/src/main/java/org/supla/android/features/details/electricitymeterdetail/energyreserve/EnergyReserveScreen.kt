@@ -7,6 +7,7 @@ package org.supla.android.features.details.electricitymeterdetail.energyreserve
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
@@ -51,6 +53,8 @@ fun EnergyReserveScreen(item: ItemBundle, viewModel: EnergyReserveViewModel = hi
         cancel = viewModel::cancelEdit,
         delete = viewModel::delete,
         draftChanged = viewModel::updateDraft,
+        searchHistory = viewModel::searchHistory,
+        historyRangeChanged = viewModel::updateHistoryRange,
         retry = { viewModel.load(item.remoteId) }
       )
     )
@@ -64,6 +68,8 @@ private data class ReserveActions(
   val cancel: () -> Unit = {},
   val delete: () -> Unit = {},
   val draftChanged: (ReserveDraft) -> Unit = {},
+  val searchHistory: () -> Unit = {},
+  val historyRangeChanged: (String, String) -> Unit = { _, _ -> },
   val retry: () -> Unit = {}
 )
 
@@ -209,11 +215,7 @@ private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
     }
   }
   if (reserve.baseline.timestamp != reserve.startsAt) {
-    Text(
-      stringResource(R.string.reserve_approximate),
-      color = MaterialTheme.colorScheme.tertiary,
-      style = MaterialTheme.typography.bodySmall
-    )
+    ReserveBaselineNotice(reserve.baseline.timestamp, reserve.startsAt)
   }
   val lastTimestamp = reserve.lastReading?.timestamp
   if (balance.status == ReserveStatus.EXPIRED && lastTimestamp != null && lastTimestamp < reserve.expiresAt) {
@@ -269,6 +271,7 @@ private fun ReserveBattery(fraction: Float, configured: Boolean = true) {
 
 @Composable
 private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
+  var showHistory by remember { mutableStateOf(false) }
   val draft = state.draft
   val enabled = !state.busy
   if (state.context?.reserve != null) Text(stringResource(R.string.reserve_edit_help), style = MaterialTheme.typography.bodySmall)
@@ -305,11 +308,123 @@ private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
     Text(stringResource(R.string.reserve_baseline_help), style = MaterialTheme.typography.bodySmall)
   } else {
     Text(stringResource(R.string.reserve_history_help), style = MaterialTheme.typography.bodySmall)
+    draft.historicalBaseline?.let { reading ->
+      Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          Text(stringResource(R.string.reserve_history_selected), style = MaterialTheme.typography.labelLarge)
+          Text(displayTime(reading.timestamp, "Europe/Warsaw"), style = MaterialTheme.typography.titleMedium)
+          Text("${formatEnergy(reading.importedRaw, 5)} kWh")
+          ReserveBaselineNotice(reading.timestamp, startOfDate(draft.startDate))
+        }
+      }
+    }
+    OutlinedButton(onClick = {
+      showHistory = true
+      actions.searchHistory()
+    }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+      Text(stringResource(R.string.reserve_history_choose))
+    }
   }
-  Button(onClick = actions.save, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.reserve_save)) }
+  Button(
+    onClick = actions.save,
+    enabled = enabled && (draft.manualBaseline || draft.historicalBaseline != null),
+    modifier = Modifier.fillMaxWidth()
+  ) { Text(stringResource(R.string.reserve_save)) }
   TextButton(onClick = actions.cancel, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
     Text(stringResource(R.string.reserve_cancel))
   }
+  if (showHistory) {
+    ReserveHistoryDialog(state, actions, onDismiss = { showHistory = false }) { reading ->
+      actions.draftChanged(draft.copy(historicalBaseline = reading))
+      showHistory = false
+    }
+  }
+}
+
+@Composable
+private fun ReserveBaselineNotice(timestamp: Long, target: Long) {
+  if (timestamp == target) return
+  Text(
+    stringResource(if (timestamp < target) R.string.reserve_history_before_notice else R.string.reserve_history_after_notice),
+    color = MaterialTheme.colorScheme.tertiary,
+    style = MaterialTheme.typography.bodySmall
+  )
+}
+
+@Composable
+private fun ReserveHistoryDialog(
+  state: EnergyReserveState,
+  actions: ReserveActions,
+  onDismiss: () -> Unit,
+  onSelected: (ReserveReading) -> Unit
+) {
+  val candidates = state.historyCandidates
+  var selected by remember(candidates) {
+    mutableStateOf(state.draft.historicalBaseline?.takeIf { it in candidates } ?: candidates.firstOrNull())
+  }
+  val target = startOfDate(state.draft.startDate)
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text(stringResource(R.string.reserve_history_choose)) },
+    text = {
+      Column(
+        Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+      ) {
+        Text(stringResource(R.string.reserve_history_target, displayTime(target, "Europe/Warsaw")))
+        Text(stringResource(R.string.reserve_history_bounds), style = MaterialTheme.typography.bodySmall)
+        ReserveDateInput(R.string.reserve_history_from, state.historyFrom, !state.busy) {
+          actions.historyRangeChanged(it, state.historyUntil)
+        }
+        ReserveDateInput(R.string.reserve_history_until, state.historyUntil, !state.busy) {
+          actions.historyRangeChanged(state.historyFrom, it)
+        }
+        Button(onClick = actions.searchHistory, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+          Text(stringResource(R.string.reserve_history_search))
+        }
+        if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+        state.error?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
+        if (state.historySearched && candidates.isEmpty() && !state.busy) {
+          Text(stringResource(R.string.reserve_history_empty))
+        }
+        candidates.forEachIndexed { index, reading ->
+          Row(
+            Modifier.fillMaxWidth().selectable(
+              selected = selected == reading,
+              enabled = !state.busy,
+              role = Role.RadioButton,
+              onClick = { selected = reading }
+            ).padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            RadioButton(selected = selected == reading, onClick = null, enabled = !state.busy)
+            Column(Modifier.weight(1f).padding(start = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+              Text(displayTime(reading.timestamp, "Europe/Warsaw"), style = MaterialTheme.typography.titleSmall)
+              Text("${formatEnergy(reading.importedRaw, 5)} kWh")
+              Text(
+                stringResource(
+                  when {
+                    reading.timestamp < target -> R.string.reserve_history_before
+                    reading.timestamp > target -> R.string.reserve_history_after
+                    else -> R.string.reserve_history_exact
+                  }
+                ),
+                style = MaterialTheme.typography.bodySmall
+              )
+              if (index == 0) Text(stringResource(R.string.reserve_history_nearest), color = MaterialTheme.colorScheme.primary)
+            }
+          }
+        }
+        selected?.let { ReserveBaselineNotice(it.timestamp, target) }
+      }
+    },
+    confirmButton = {
+      TextButton(onClick = { selected?.let(onSelected) }, enabled = !state.busy && selected != null) {
+        Text(stringResource(R.string.reserve_history_use))
+      }
+    },
+    dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.reserve_cancel)) } }
+  )
 }
 
 @Composable
@@ -337,13 +452,15 @@ private fun ReserveDateInput(label: Int, date: String, enabled: Boolean, onChang
   }
 }
 
-private fun formatEnergy(raw: Long): String = NumberFormat.getNumberInstance().apply {
-  maximumFractionDigits = 3
+private fun formatEnergy(raw: Long, fractionDigits: Int = 3): String = NumberFormat.getNumberInstance().apply {
+  maximumFractionDigits = fractionDigits
 }.format(ReserveEnergy.kwh(raw))
+
+private fun startOfDate(date: String): Long = LocalDate.parse(date).atStartOfDay(ZoneId.of("Europe/Warsaw")).toInstant().toEpochMilli()
 
 private fun displayDate(date: String): String = LocalDate.parse(date).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
 private fun displayTime(timestamp: Long, zone: String): String =
-  DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(ZoneId.of(zone)).format(Instant.ofEpochMilli(timestamp))
+  DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss").withZone(ZoneId.of(zone)).format(Instant.ofEpochMilli(timestamp))
 
 @Preview(name = "Magazyn — jasny", showBackground = true)
 @Preview(name = "Magazyn — ciemny", showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)

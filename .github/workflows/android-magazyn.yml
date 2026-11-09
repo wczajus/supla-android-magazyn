@@ -1,4 +1,4 @@
-name: SUPLA Magazyn APK
+name: SUPLA Magazyn Release APK
 
 on:
   push:
@@ -38,14 +38,21 @@ jobs:
           chmod 600 .gradle/magazyn-test-signing.p12
           chmod +x gradlew
       - name: Build and run unit tests
-        run: ./gradlew :app:spotlessCheck :app:assembleInternaltest :app:testInternaltestUnitTest -PmagazynVersionCode=$((10000 + GITHUB_RUN_NUMBER)) --stacktrace --max-workers=2 -Dorg.gradle.jvmargs=-Xmx4g -Dkotlin.daemon.jvm.options=-Xmx2g
+        run: ./gradlew :app:spotlessCheck :app:assembleInternalTestRelease :app:testInternalTestReleaseUnitTest -PmagazynVersionCode=$((10000 + GITHUB_RUN_NUMBER)) --stacktrace --max-workers=2 -Dorg.gradle.jvmargs=-Xmx4g -Dkotlin.daemon.jvm.options=-Xmx2g
       - name: Prepare universal APK
         shell: bash
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/internaltest/*universal*.apk dist/supla-magazyn.apk
+          cp app/build/outputs/apk/internalTestRelease/*universal*.apk dist/supla-magazyn.apk
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/supla-magazyn.apk | tee dist/signature.txt
           grep -Fq 'Signer #1 certificate SHA-256 digest: 5f166d6c18942ba593ed09f125ea24982aa6e2ea2f841d2788c26cd39cbd32c0' dist/signature.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging dist/supla-magazyn.apk > dist/apk-metadata.txt
+          grep -Fq "package: name='org.supla.android.t'" dist/apk-metadata.txt
+          grep -Fq "application-label:'SUPLA Magazyn'" dist/apk-metadata.txt
+          if grep -q '^application-debuggable' dist/apk-metadata.txt; then
+            echo 'Release APK must not be debuggable' >&2
+            exit 1
+          fi
           (cd dist && sha256sum supla-magazyn.apk > supla-magazyn.apk.sha256)
       - uses: actions/upload-artifact@v4
         with:
@@ -64,7 +71,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  prerelease:
+  publish:
     if: github.event_name == 'push' && github.repository == 'wczajus/supla-android-magazyn'
     needs: build
     runs-on: ubuntu-latest
@@ -75,7 +82,7 @@ jobs:
         with:
           name: supla-magazyn-apk
           path: dist
-      - name: Publish test APK
+      - name: Publish release APK
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -84,9 +91,9 @@ jobs:
           BUILD_BRANCH: ${{ github.ref_name }}
         shell: bash
         run: |
-          printf 'Testowa wersja SUPLA Magazyn.\n\nGałąź: %s\nCommit: %s\n\nInstaluj supla-magazyn.apk. Aplikacja działa obok oficjalnej SUPLI.\n' "$BUILD_BRANCH" "$BUILD_SHA" > notes.md
-          OBSOLETE_SHA="$(gh release view magazyn-build-5 --json targetCommitish --jq .targetCommitish 2>/dev/null || true)"
-          if [ "$OBSOLETE_SHA" = 'daa67b98ca0a64e83cffd97686469dfe25340a6e' ]; then
-            gh release edit magazyn-build-5 --draft
+          printf 'SUPLA Magazyn — APK release (niedebugowalna).\n\nGałąź: %s\nCommit: %s\n\nInstaluj supla-magazyn.apk. Zachowano podpis i identyfikator aplikacji umożliwiający aktualizację poprzedniej wersji.\n' "$BUILD_BRANCH" "$BUILD_SHA" > notes.md
+          RELEASE_OPTIONS=(--prerelease --latest=false)
+          if [ "$BUILD_BRANCH" = master ]; then
+            RELEASE_OPTIONS=(--latest)
           fi
-          gh release create "magazyn-build-$BUILD_NUMBER" dist/supla-magazyn.apk dist/supla-magazyn.apk.sha256 --target "$BUILD_SHA" --title "SUPLA Magazyn — build $BUILD_NUMBER" --notes-file notes.md --prerelease --latest=false
+          gh release create "magazyn-build-$BUILD_NUMBER" dist/supla-magazyn.apk dist/supla-magazyn.apk.sha256 --target "$BUILD_SHA" --title "SUPLA Magazyn — release $BUILD_NUMBER" --notes-file notes.md "${RELEASE_OPTIONS[@]}"

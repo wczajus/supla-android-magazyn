@@ -1,48 +1,42 @@
-# SUPLA Magazyn — plan i budowanie
+# SUPLA Magazyn
 
-Wersja na Androida dla licznika ZAMEL MEW-01. Jedna ręcznie wprowadzana pula energii z faktury, pomniejszana wyłącznie o pobór energii czynnej z sieci od ustalonej daty. Oddanie energii i współczynnik 0,8 nie uczestniczą w obliczeniach. To pomocniczy licznik wykorzystania puli, nie odwzorowanie faktury dostawcy.
+Moduł dla Androida i licznika ZAMEL MEW-01. Monitoruje jedną pulę z faktury, pomniejszaną wyłącznie o energię czynną pobraną z sieci. Energia oddana i współczynnik 0,8 nie uczestniczą w obliczeniach.
 
-## Etapy
+## Konfiguracja
 
-1. Bazowa APK i GitHub Actions; osobna nazwa aplikacji, stały podpis testowy.
-2. Model magazynu, lokalny zapis przypisany do profilu i kanału, obliczenia i testy.
-3. Zakładka magazynu przy liczniku: konfiguracja dat, salda i odczytu początkowego, ikona baterii i saldo.
-4. Odczyty historyczne z API, obsługa braków danych, resetu i końca okresu.
-5. Testy na rzeczywistym MEW-01, korekty i PR do master.
+1. Otwórz samodzielny kanał licznika → **Magazyn → Skonfiguruj magazyn**.
+2. Wpisz pulę z faktury w kWh, pierwszy dzień okresu oraz ostatni dzień ważności (włącznie). Daty liczymy w Europe/Warsaw, z uwzględnieniem zmiany czasu.
+3. Dla automatycznej konfiguracji naciśnij **Wybierz odczyt z historii**. Domyślny zakres obejmuje dzień przed wskazaną datą, wybrany dzień i dzień po nim. Możesz zmienić obie granice, np. przeszukać wcześniejszy rok.
+4. Aplikacja pyta o najbliższe próbki przed północą i po niej, bez pobierania całego roku danych. Pokazuje do trzech odczytów z każdej strony, uporządkowanych według odległości od północy. Widać rzeczywistą datę, godzinę, stan w kWh i oznaczenie najbliższej próbki.
+5. Zatwierdź odczyt, następnie zapisz konfigurację. Zmiana dat okresu kasuje wcześniejszy wybór, aby nie użyć niewłaściwego pomiaru.
+6. Jeśli historia jest niedostępna, wybierz ręczny stan początkowy: narastający pobór z sieci, łącznie z trzech faz, na początek okresu. To osobna wartość od salda na fakturze.
 
-## Budowanie
+Nie wymagamy próbki w ciągu dwóch minut przed północą. Przy wybraniu wcześniejszego odczytu wynik obejmie też pobór od tej próbki do początku okresu. Przy późniejszym odczycie początkowy fragment poboru zostanie pominięty. Aplikacja wyjaśnia ten efekt przed zatwierdzeniem i pokazuje faktyczny czas bazowego pomiaru. Nie interpoluje ani nie wymyśla brakującego odczytu dokładnie na północ.
 
-Projekt upstream wymaga JDK 21, platformy Android 37 (`platforms;android-37.0` w katalogu SDK) i Build Tools 36.0.0. Biblioteki natywne są już w repozytorium. Workflow `.github/workflows/android-magazyn.yml` przygotowuje środowisko, kopiuje istniejące konfiguracje testowe Firebase, uruchamia testy i buduje uniwersalną APK. Workflow uruchamia się po pushu na gałęzie master i feature/**. Udany build publikuje APK w osobnym prerelease oraz zachowuje artefakt i raporty testów. Kontrole commita są widoczne także w PR; nie uruchamiamy drugi raz tego samego buildu dla zdarzenia pull_request.
+Szukane daty są włączne. Nie proponujemy próbek z przyszłości ani z chwili po końcu ważności. Podgląd historii nie zapisuje konfiguracji. Wybór musi zostać potwierdzony, a konfiguracja osobno zapisana.
 
-Wariant `internaltest` ma identyfikator `org.supla.android.t`, więc instaluje się obok oficjalnego `org.supla.android`. Nazwa na telefonie: **SUPLA Magazyn**. Po pierwszej instalacji wymaga osobnego dodania konta SUPLA; dane oficjalnej aplikacji nie są automatycznie przenoszone. Konfiguracja Firebase pochodzi z upstreamowego wariantu testowego; powiadomienia push wymagają osobnej weryfikacji i nie są kryterium ukończenia modułu magazynu.
+## Obliczenia i przechowywanie
 
-`ci/test-signing.p12.b64` jest celowo publicznym kluczem **wyłącznie do testów** (alias `androiddebugkey`, hasło `android`). Zapewnia identyczny podpis kolejnych APK, niezależnie od runnera. Nie służy do produkcji ani publikacji w Google Play. Nie zastępować go bez zaplanowania ponownej instalacji aplikacji. Numer wersji CI rośnie od 10001.
+Saldo = pula początkowa − przyrost sumy trzech liczników FAE. Używamy surowych wartości API w całkowitych jednostkach 0,00001 kWh; bez Float, energii oddanej i syntetycznych próbek wykresu.
 
-Gałąź robocza: `feature/magazyn-energii`. Zmiany trafiają do własnego repozytorium, przez PR do `master`.
+Ekran pokazuje baterię, pozostałą pulę, wykorzystanie, cały pobór, pobór ponad pulę, termin i czas ostatniego pomiaru. Odświeżanie działa po otwarciu, ręcznie oraz po komunikacie licznika, najwyżej raz na minutę i przy widocznym ekranie. Aplikacja nie musi być uruchamiana codziennie.
 
-Certyfikat testowy SHA-256: `5F:16:6D:6C:18:94:2B:A5:93:ED:09:F1:25:EA:24:98:2A:A6:E2:EA:2F:84:1D:27:88:C2:6C:D3:9C:BD:32:C0`. Gradle jawnie wskazuje plik `.gradle/magazyn-test-signing.p12`, a workflow sprawdza certyfikat gotowej APK przed publikacją. Lokalnie przed budowaniem należy wykonać `mkdir -p .gradle` i `base64 --decode ci/test-signing.p12.b64 > .gradle/magazyn-test-signing.p12`, a konfiguracje Firebase skopiować tak jak w workflow.
+Po końcu ważności nie odejmujemy późniejszego poboru. Odczyt jest ograniczony do końca okresu. Jeśli nie ma próbki dokładnie na granicy, niewykorzystana reszta jest oznaczona jako szacunek z ostatniego wcześniejszego odczytu.
 
-## Dostępny moduł — pierwsza wersja
+Konfiguracja i ostatni pomiar są lokalne, osobne dla profilu i kanału. Przy braku sieci pozostaje ostatnie zapisane saldo z czasem pomiaru i komunikatem błędu. Usunięcie profilu usuwa jego magazyny. Edycja zastępuje jedną pulę; nie prowadzimy archiwum faktur ani synchronizacji między telefonami.
 
-Otwórz szczegóły kanału licznika energii, następnie zakładkę **Magazyn**. Dotyczy samodzielnego kanału licznika, nie grup urządzeń. Przewidziany dla ZAMEL MEW-01 z trzema licznikami energii czynnej pobranej z sieci.
+Spadek sumy lub jednej fazy między dostępnymi odczytami blokuje saldo do korekty. Sama zmiana wielkości puli nie usuwa ostrzeżenia. Reset i ponowny wzrost w przerwie bez dostępnych pomiarów mogą pozostać niewykryte. Saldo jest pomocniczym oszacowaniem, a nie odtworzeniem bilansowania i faktury dostawcy.
 
-1. Wpisz dostępną pulę z faktury w kWh, pierwszy dzień okresu oraz ostatni dzień ważności (włącznie).
-2. Domyślnie aplikacja odczyta stan początkowy z historii SUPLI. Dopuszcza pomiar najwyżej dwie minuty przed początkiem okresu, pokazując jego faktyczny czas i oznaczając przybliżenie. Nie korzysta z interpolowanych danych wykresu.
-3. Gdy historii brakuje, wybierz ręczny stan początkowy: narastający pobór z sieci, łącznie z trzech faz, na początek wskazanego okresu. To osobna wartość od salda z faktury.
-4. Po zapisaniu widzisz pozostałą pulę, wykorzystanie, cały pobór i ewentualny pobór ponad pulę. Energia oddana nie jest doliczana. Obliczenia używają całkowitych jednostek 0,00001 kWh, bez zaokrągleń Float.
-5. Aktualizacja następuje po otwarciu ekranu, ręcznie oraz po komunikacie licznika (najwyżej raz na minutę). Aplikacja nie musi pracować stale; używa różnicy narastających liczników.
+## APK release i aktualizacje
 
-Daty interpretujemy w strefie Europe/Warsaw, z uwzględnieniem zmiany czasu. Po końcu ważności nie odejmujemy późniejszego poboru — odczyt jest ograniczony do końca okresu. Gdy nie ma próbki dokładnie na granicy, niewykorzystana reszta jest oznaczona jako szacunek z ostatniego wcześniejszego pomiaru.
+Workflow `.github/workflows/android-magazyn.yml` buduje niedebugowalny wariant `internalTestRelease`, uruchamia pełne testy `testInternalTestReleaseUnitTest` oraz `spotlessCheck`. Sprawdza podpis APK, identyfikator, nazwę i brak flagi debuggable. Gałęzie `feature/**` publikują podgląd jako prerelease. Po scaleniu `master` publikuje zwykły Release z plikiem `supla-magazyn.apk` i sumą SHA-256.
 
-Konfiguracja i ostatni pomiar są lokalne, osobne dla profilu i kanału. Przy braku sieci pozostaje ostatnio zapisane saldo z datą pomiaru i komunikatem o nieudanym odświeżeniu. Usunięcie profilu usuwa też jego magazyny. Edycja zastępuje konfigurację jednej puli; nie prowadzimy archiwum faktur ani synchronizacji między telefonami.
+Aplikacja **SUPLA Magazyn** ma identyfikator `org.supla.android.t`, więc działa obok oficjalnej SUPLI. Zachowuje podpis poprzednich APK i rosnący versionCode, aby umożliwić aktualizację z zachowaniem danych. Pierwsza instalacja wymaga osobnego dodania konta SUPLA. Konfiguracja Firebase pozostaje wariantem testowym upstreamu; powiadomienia push nie zostały sprawdzone z prywatną instalacją użytkownika.
 
-Spadek sumy lub jednej z faz między dostępnymi odczytami blokuje saldo do korekty. Samo zwiększenie początkowej puli nie kasuje tego ostrzeżenia. Reset i ponowny wzrost w przerwie bez dostępnych pomiarów mogą pozostać niewykryte; nie odtwarzamy pełnej historii resetów. Saldo jest pomocniczym oszacowaniem według sumy poboru z faz, a nie wierną symulacją rozliczenia dostawcy i bilansowania.
+Budowanie wymaga JDK 21, platformy SDK `platforms;android-37.0` i Build Tools 36.0.0. Natywne biblioteki są w repozytorium. Workflow kopiuje konfiguracje `drone.google-services.json` do odpowiadających plików `google-services.json` i dekoduje `ci/test-signing.p12.b64` do `.gradle/magazyn-test-signing.p12`.
 
-## Sprawdzenie na telefonie
+Klucz jest celowo publicznym kluczem deweloperskim, wspólnym z dotychczasowymi wersjami testowymi. Alias i hasło: `androiddebugkey` / `android`. Nie jest kluczem produkcyjnym do Google Play. Certyfikat SHA-256: `5F:16:6D:6C:18:94:2B:A5:93:ED:09:F1:25:EA:24:98:2A:A6:E2:EA:2F:84:1D:27:88:C2:6C:D3:9C:BD:32:C0`.
 
-- Zainstaluj APK z najnowszego prerelease i dodaj swoje konto SUPLA.
-- Sprawdź, czy na MEW-01 działa zakładka Magazyn w jasnym i ciemnym motywie.
-- Dla znanego okresu porównaj przyrost poboru z ręcznym wyliczeniem. Sprawdź też komunikat przy wyłączonym internecie.
-- Dane własnego konta i rzeczywisty MEW-01 wymagają sprawdzenia na telefonie użytkownika. Testy automatyczne korzystają z fikcyjnych odczytów i nie łączą się z prywatną instalacją.
+## Weryfikacja na telefonie
 
-Workflow sprawdza formatowanie przez `:app:spotlessCheck`, buduje `:app:assembleInternaltest` i uruchamia cały zestaw testów jako `:app:testInternaltestUnitTest`, czyli na wariancie odpowiadającym instalowanej APK. Pozwala to współdzielić kompilację aplikacji między budowaniem a testami, bez drugiego kompilowania wariantu debug.
+Testy automatyczne korzystają z fikcyjnych odczytów. Na rzeczywistym MEW-01 należy sprawdzić pobieranie historii, wybór daty i próbki, ręczne porównanie salda, działanie offline oraz wygląd w obu motywach. Zmiany przechodzą przez PR i po zielonych kontrolach są scalane do `master`.

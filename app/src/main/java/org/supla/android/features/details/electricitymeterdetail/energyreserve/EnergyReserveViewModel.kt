@@ -14,6 +14,7 @@ import org.supla.android.core.ui.ViewState
 import org.supla.android.extensions.subscribeBy
 import org.supla.android.tools.SuplaThreading
 import org.supla.core.shared.infrastructure.messaging.SuplaClientMessage
+import java.time.LocalDate
 import javax.inject.Inject
 
 data class EnergyReserveState(
@@ -22,6 +23,10 @@ data class EnergyReserveState(
   val busy: Boolean = false,
   val draft: ReserveDraft = ReserveDraft(),
   val balance: ReserveBalance? = null,
+  val historyFrom: String = "",
+  val historyUntil: String = "",
+  val historyCandidates: List<ReserveReading> = emptyList(),
+  val historySearched: Boolean = false,
   @param:StringRes val error: Int? = null
 ) : ViewState()
 
@@ -84,14 +89,55 @@ class EnergyReserveViewModel @Inject constructor(
         startDate = reserve.startDate,
         validUntil = reserve.validUntil,
         manualBaseline = reserve.manualBaseline,
-        baselineKwh = ReserveEnergy.kwh(reserve.baseline.importedRaw).stripTrailingZeros().toPlainString()
+        baselineKwh = ReserveEnergy.kwh(reserve.baseline.importedRaw).stripTrailingZeros().toPlainString(),
+        historicalBaseline = if (reserve.manualBaseline) null else reserve.baseline
       )
     }
-    updateState { it.copy(editing = true, draft = draft, error = null) }
+    val date = LocalDate.parse(draft.startDate)
+    updateState {
+      it.copy(
+        editing = true,
+        draft = draft,
+        historyFrom = date.minusDays(1).toString(),
+        historyUntil = date.plusDays(1).toString(),
+        historyCandidates = emptyList(),
+        historySearched = false,
+        error = null
+      )
+    }
   }
 
   fun updateDraft(draft: ReserveDraft) {
-    updateState { it.copy(draft = draft, error = null) }
+    updateState { state ->
+      if (draft.startDate != state.draft.startDate || draft.validUntil != state.draft.validUntil) {
+        val date = LocalDate.parse(draft.startDate)
+        state.copy(
+          draft = draft.copy(historicalBaseline = null),
+          historyFrom = date.minusDays(1).toString(),
+          historyUntil = date.plusDays(1).toString(),
+          historyCandidates = emptyList(),
+          historySearched = false,
+          error = null
+        )
+      } else {
+        state.copy(draft = draft, error = null)
+      }
+    }
+  }
+
+  fun updateHistoryRange(from: String, until: String) {
+    updateState {
+      it.copy(historyFrom = from, historyUntil = until, historyCandidates = emptyList(), historySearched = false, error = null)
+    }
+  }
+
+  fun searchHistory() {
+    val state = currentState()
+    val context = state.context ?: return
+    if (state.busy) return
+    runOperation({ repository.findBaselineCandidates(context, state.draft, state.historyFrom, state.historyUntil) }) { candidates ->
+      updateState { it.copy(historyCandidates = candidates, historySearched = true) }
+    }
   }
 
   fun cancelEdit() {

@@ -67,16 +67,17 @@ android {
     create("internalTestRelease") {
       initWith(buildTypes.getByName("release"))
       applicationIdSuffix = ".t"
-      signingConfig = signingConfigs.getByName("debug")
+      signingConfig = signingConfigs.getByName("magazynTest")
+      versionNameSuffix = "-magazyn"
     }
   }
 
   sourceSets {
     getByName("internaltest") {
-      res.directories.add("internaltest/res")
+      res.directories.add("src/internaltest/res")
     }
     getByName("internalTestRelease") {
-      res.directories.add("internaltest/res")
+      res.directories.add("src/internaltest/res")
     }
     getByName("main") {
       jniLibs.directories.add("src/main/libs")

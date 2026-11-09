@@ -40,7 +40,7 @@
   <string name="reserve_manual_label">Enter the initial counter manually</string>
   <string name="reserve_baseline_label">Cumulative import at start (kWh)</string>
   <string name="reserve_baseline_help">Enter the cumulative grid import reading at the start of this period, summed across all three phases. This is a meter reading, separate from the allowance on your bill.</string>
-  <string name="reserve_history_help">SUPLA history will supply the initial counter. If there is no measurement within two minutes before the start, enter the reading manually.</string>
+  <string name="reserve_history_help">Search readings near the requested midnight and explicitly confirm one. You can set any search date range. The actual date, time and counter value are shown before saving.</string>
   <string name="reserve_edit_help">Saving replaces the current configuration and recalculates the entire period from the new initial counter.</string>
   <string name="reserve_counter_help">Uses the sum of the three active energy import counters. This is an aid for tracking your allowance, rather than a supplier billing calculation. A reset between unavailable measurements may require a manual correction.</string>
   <string name="reserve_error_channel">This meter is no longer available in the active account.</string>
@@ -53,4 +53,21 @@
   <string name="reserve_error_history">No suitable historical reading is available. Enter the initial counter manually if configuring the reserve.</string>
   <string name="reserve_error_phases">Complete active import counters for all three phases are required. Check the meter history.</string>
   <string name="reserve_error_reading">The measurement is outside the period or older than the saved one. The saved balance has been retained.</string>
+  <string name="reserve_history_choose">Choose a historical reading</string>
+  <string name="reserve_history_selected">Selected initial counter</string>
+  <string name="reserve_history_target">Requested start: %1$s</string>
+  <string name="reserve_history_from">Search from (inclusive)</string>
+  <string name="reserve_history_until">Search until (inclusive)</string>
+  <string name="reserve_history_search">Search readings</string>
+  <string name="reserve_history_use">Use this reading</string>
+  <string name="reserve_history_empty">No readings in this range. Change the dates or enter the initial counter manually.</string>
+  <string name="reserve_history_nearest">Closest to the requested midnight</string>
+  <string name="reserve_history_before">Before the requested start</string>
+  <string name="reserve_history_after">After the requested start</string>
+  <string name="reserve_history_exact">Exactly at the requested start</string>
+  <string name="reserve_history_before_notice">This reading is before the requested midnight. Consumption will include the energy imported between this reading and the start of the period.</string>
+  <string name="reserve_history_after_notice">This reading is after the requested midnight. Consumption between the start of the period and this reading will not be counted.</string>
+  <string name="reserve_error_history_selection">Choose and confirm a historical reading within the validity period, or enter the initial counter manually.</string>
+  <string name="reserve_error_history_range">Check the period and search dates. The search end cannot precede its start.</string>
+  <string name="reserve_history_bounds">Readings are limited to the selected dates, before the validity deadline and no later than now.</string>
 </resources>

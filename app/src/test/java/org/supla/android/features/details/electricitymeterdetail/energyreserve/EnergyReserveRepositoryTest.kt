@@ -123,9 +123,126 @@ class EnergyReserveRepositoryTest {
     assertEquals(value.lastReading, saved.reserve!!.lastReading)
   }
 
-  @Test fun `initial history must be close to the boundary and not arbitrarily old`() {
-    respondWith(measurement(startsAt - 121_000))
+  private fun respondToSearch(before: List<ElectricityMeasurement>, after: List<ElectricityMeasurement>) {
+    every {
+      cloud.getElectricityMeasurements(remoteId = 42, order = "DESC", limit = 20, afterTimestamp = any(), beforeTimestamp = any())
+    } returns Observable.just(before)
+    every {
+      cloud.getElectricityMeasurements(remoteId = 42, order = "ASC", limit = 20, afterTimestamp = any(), beforeTimestamp = any())
+    } returns Observable.just(after)
+  }
+
+  @Test fun `automatic save requires an explicitly selected reading`() {
     assertThrows(ReserveProblem::class.java) { repository.save(context, ReserveDraft("200", "2026-05-01", "2027-04-30")) }
     verify(exactly = 0) { store.write(any()) }
+    verify(exactly = 0) { provider.provide() }
+  }
+
+  @Test fun `search prefers nearest reading after midnight over a much older prior reading`() {
+    respondToSearch(listOf(measurement(startsAt - 14_400_000)), listOf(measurement(startsAt + 900_000)))
+    val result = repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-05-01"), "2026-04-30", "2026-05-02")
+    assertEquals(startsAt + 900_000, result.first().timestamp)
+    assertEquals(2, result.size)
+  }
+
+  @Test fun `accepts a selected reading more than two minutes before midnight`() {
+    val reading = measurement(startsAt - 3_600_000).toReserveReading()
+    val draft = ReserveDraft("200", "2026-05-01", "2027-04-30", historicalBaseline = reading)
+    assertEquals(reading, repository.save(context, draft).reserve!!.baseline)
+    verify(exactly = 0) { provider.provide() }
+  }
+
+  @Test fun `accepts a selected reading after midnight and retains its actual time`() {
+    val reading = measurement(startsAt + 900_000).toReserveReading()
+    val draft = ReserveDraft("200", "2026-05-01", "2027-04-30", historicalBaseline = reading)
+    val value = repository.save(context, draft).reserve!!
+    assertEquals(reading.timestamp, value.readingStartsAt)
+    assertEquals(startsAt, value.startsAt)
+  }
+
+  @Test fun `search succeeds when only a later sample exists`() {
+    respondToSearch(emptyList(), listOf(measurement(startsAt + 600_000)))
+    val result = repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-05-01"), "2026-04-30", "2026-05-02")
+    assertEquals(listOf(startsAt + 600_000), result.map { it.timestamp })
+  }
+
+  @Test fun `search removes duplicate exact midnight samples and prefers exact match`() {
+    respondToSearch(listOf(measurement(startsAt)), listOf(measurement(startsAt), measurement(startsAt + 600_000)))
+    val result = repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-05-01"), "2026-04-30", "2026-05-02")
+    assertEquals(startsAt, result.first().timestamp)
+    assertEquals(2, result.size)
+  }
+
+  @Test fun `equally distant samples prefer the one before midnight`() {
+    respondToSearch(listOf(measurement(startsAt - 600_000)), listOf(measurement(startsAt + 600_000)))
+    val result = repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-05-01"), "2026-04-30", "2026-05-02")
+    assertEquals(startsAt - 600_000, result.first().timestamp)
+  }
+
+  @Test fun `supports a user range reaching into the previous year with bounded queries`() {
+    val from = LocalDate.of(2025, 5, 1).atStartOfDay(ZoneId.of("Europe/Warsaw")).toInstant().toEpochMilli()
+    respondToSearch(listOf(measurement(from + 60_000)), emptyList())
+    val result = repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-05-01"), "2025-05-01", "2026-05-01")
+    assertEquals(from + 60_000, result.single().timestamp)
+    verify {
+      cloud.getElectricityMeasurements(
+        remoteId = 42,
+        order = "DESC",
+        limit = 20,
+        afterTimestamp = from / 1000 - 1,
+        beforeTimestamp =
+        startsAt / 1000 + 1
+      )
+    }
+  }
+
+  @Test fun `samples outside the chosen dates or in the future are ignored`() {
+    respondToSearch(listOf(measurement(startsAt - 86_400_000)), listOf(measurement(now + 60_000)))
+    val result = repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-05-01"), "2026-05-01", "2026-05-02")
+    assertTrue(result.isEmpty())
+  }
+
+  @Test fun `incomplete samples do not prevent choosing a complete one`() {
+    respondToSearch(listOf(measurement(startsAt).copy(phase2Fae = null)), listOf(measurement(startsAt + 600_000)))
+    val result = repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-05-01"), "2026-04-30", "2026-05-02")
+    assertEquals(startsAt + 600_000, result.single().timestamp)
+  }
+
+  @Test fun `account change during search prevents querying the second side`() {
+    every { profiles.findActiveProfile() } returnsMany listOf(Single.just(profile(7)), Single.just(profile(8)))
+    respondToSearch(listOf(measurement(startsAt)), emptyList())
+    assertThrows(ReserveProblem::class.java) {
+      repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-05-01"), "2026-04-30", "2026-05-02")
+    }
+    verify(exactly = 0) {
+      cloud.getElectricityMeasurements(remoteId = 42, order = "ASC", limit = 20, afterTimestamp = any(), beforeTimestamp = any())
+    }
+    verify(exactly = 0) { store.write(any()) }
+  }
+
+  @Test fun `search rejects reversed dates without querying cloud`() {
+    assertThrows(ReserveProblem::class.java) {
+      repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-05-01"), "2026-05-02", "2026-05-01")
+    }
+    verify(exactly = 0) { provider.provide() }
+  }
+
+  @Test fun `search date boundaries respect the 23 hour daylight saving day`() {
+    val zone = ZoneId.of("Europe/Warsaw")
+    val target = LocalDate.of(2026, 3, 29).atStartOfDay(zone).toInstant().toEpochMilli()
+    val end = LocalDate.of(2026, 3, 30).atStartOfDay(zone).toInstant().toEpochMilli()
+    respondToSearch(listOf(measurement(target)), listOf(measurement(target + 3_600_000)))
+    repository.findBaselineCandidates(context, ReserveDraft(startDate = "2026-03-29"), "2026-03-29", "2026-03-29")
+    assertEquals(23 * 3_600_000L, end - target)
+    verify {
+      cloud.getElectricityMeasurements(
+        remoteId = 42,
+        order = "ASC",
+        limit = 20,
+        afterTimestamp = target / 1000 - 1,
+        beforeTimestamp =
+        end / 1000
+      )
+    }
   }
 }

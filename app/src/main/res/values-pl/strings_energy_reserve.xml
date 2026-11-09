@@ -40,7 +40,7 @@
   <string name="reserve_manual_label">Wpiszę ręcznie stan początkowy licznika</string>
   <string name="reserve_baseline_label">Narastający pobór na początek okresu (kWh)</string>
   <string name="reserve_baseline_help">Wpisz narastający odczyt energii pobranej z sieci na początek okresu, łącznie z trzech faz. To stan licznika, osobny od wartości magazynu na fakturze.</string>
-  <string name="reserve_history_help">Stan początkowy pobierzemy z historii SUPLI. Gdy zabraknie pomiaru z dwóch minut przed początkiem okresu, wpisz odczyt ręcznie.</string>
+  <string name="reserve_history_help">Wyszukaj odczyty blisko wybranej północy i zatwierdź jeden z nich. Możesz ustawić dowolny zakres dat wyszukiwania. Przed zapisem pokażemy rzeczywistą datę, godzinę i stan licznika.</string>
   <string name="reserve_edit_help">Zapis zastąpi obecną konfigurację i przeliczy cały okres od nowego stanu początkowego.</string>
   <string name="reserve_counter_help">Liczymy sumę trzech liczników energii czynnej pobranej z sieci. To pomocniczy licznik wykorzystania puli, a nie odtworzenie rozliczenia dostawcy. Reset w czasie niedostępnych pomiarów może wymagać ręcznej korekty.</string>
   <string name="reserve_error_channel">Ten licznik nie jest już dostępny na aktywnym koncie.</string>
@@ -53,4 +53,21 @@
   <string name="reserve_error_history">Brak odpowiedniego odczytu w historii. Przy konfiguracji wpisz stan początkowy ręcznie.</string>
   <string name="reserve_error_phases">Potrzebne są pełne liczniki energii czynnej pobranej dla wszystkich trzech faz. Sprawdź historię licznika.</string>
   <string name="reserve_error_reading">Pomiar jest poza okresem lub starszy od zapisanego. Zachowaliśmy poprzednie saldo.</string>
+  <string name="reserve_history_choose">Wybierz odczyt z historii</string>
+  <string name="reserve_history_selected">Wybrany stan początkowy</string>
+  <string name="reserve_history_target">Wybrany początek: %1$s</string>
+  <string name="reserve_history_from">Szukaj od (włącznie)</string>
+  <string name="reserve_history_until">Szukaj do (włącznie)</string>
+  <string name="reserve_history_search">Wyszukaj odczyty</string>
+  <string name="reserve_history_use">Użyj tego odczytu</string>
+  <string name="reserve_history_empty">Brak odczytów w tym zakresie. Zmień daty lub wpisz stan początkowy ręcznie.</string>
+  <string name="reserve_history_nearest">Najbliższy wybranej północy</string>
+  <string name="reserve_history_before">Przed początkiem okresu</string>
+  <string name="reserve_history_after">Po początku okresu</string>
+  <string name="reserve_history_exact">Dokładnie na początek okresu</string>
+  <string name="reserve_history_before_notice">Ten odczyt pochodzi sprzed wybranej północy. Obliczenia obejmą także energię pobraną między tym odczytem a początkiem okresu.</string>
+  <string name="reserve_history_after_notice">Ten odczyt pochodzi po wybranej północy. Pobór między początkiem okresu a tym odczytem nie zostanie uwzględniony.</string>
+  <string name="reserve_error_history_selection">Wybierz i zatwierdź odczyt historyczny sprzed końca ważności albo wpisz stan początkowy ręcznie.</string>
+  <string name="reserve_error_history_range">Sprawdź daty okresu i wyszukiwania. Koniec zakresu nie może wypadać przed jego początkiem.</string>
+  <string name="reserve_history_bounds">Pokazujemy odczyty z wybranego zakresu, sprzed końca ważności i najpóźniej z bieżącej chwili.</string>
 </resources>

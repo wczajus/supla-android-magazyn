@@ -152,4 +152,21 @@ class EnergyReserveTest {
     val value = reserve().copy(resetDetected = true)
     assertEquals(value, Json.decodeFromString<EnergyReserve>(Json.encodeToString(value)))
   }
+
+  @Test fun `later selected baseline is valid and consumption starts at that reading`() {
+    val value = reserve().copy(baseline = ReserveReading(start + 600_000, 10_000 * 100_000L), manualBaseline = false)
+    assertEquals(ReserveStatus.ACTIVE, ReserveCalculator.calculate(value, now).status)
+    assertEquals(50 * 100_000L, ReserveCalculator.calculate(value, now).remainingRaw)
+  }
+
+  @Test fun `a cached measurement before a later baseline is not mistaken for a counter reset`() {
+    val value = reserve().copy(
+      baseline = ReserveReading(start + 600_000, 10_000 * 100_000L),
+      lastReading = ReserveReading(
+        start + 300_000,
+        9_999 * 100_000L
+      )
+    )
+    assertEquals(ReserveStatus.INVALID_READING, ReserveCalculator.calculate(value, now).status)
+  }
 }

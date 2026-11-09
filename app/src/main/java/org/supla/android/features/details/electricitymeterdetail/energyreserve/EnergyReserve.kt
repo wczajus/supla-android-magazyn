@@ -59,12 +59,13 @@ data class EnergyReserve(
   val resetDetected: Boolean = false
 ) {
   val startsAt: Long get() = LocalDate.parse(startDate).atStartOfDay(ZoneId.of(zoneId)).toInstant().toEpochMilli()
+  val readingStartsAt: Long get() = maxOf(startsAt, baseline.timestamp)
   val expiresAt: Long get() = LocalDate.parse(validUntil).plusDays(1).atStartOfDay(ZoneId.of(zoneId)).toInstant().toEpochMilli()
 
   init {
     require(initialRaw > 0)
     require(expiresAt > startsAt)
-    require(baseline.timestamp <= startsAt)
+    require(baseline.timestamp < expiresAt)
   }
 }
 
@@ -81,10 +82,10 @@ data class ReserveBalance(
 
 object ReserveCalculator {
   fun calculate(reserve: EnergyReserve, now: Long): ReserveBalance {
-    if (now < reserve.startsAt) return ReserveBalance(ReserveStatus.NOT_STARTED)
+    if (now < reserve.readingStartsAt) return ReserveBalance(ReserveStatus.NOT_STARTED)
     if (reserve.resetDetected) return ReserveBalance(ReserveStatus.COUNTER_RESET)
     val reading = reserve.lastReading ?: return ReserveBalance(ReserveStatus.NO_READING)
-    if (reading.timestamp < reserve.startsAt || reading.timestamp > minOf(now, reserve.expiresAt)) {
+    if (reading.timestamp < reserve.readingStartsAt || reading.timestamp > minOf(now, reserve.expiresAt)) {
       return ReserveBalance(ReserveStatus.INVALID_READING)
     }
     if (reading.decreasedFrom(reserve.baseline)) return ReserveBalance(ReserveStatus.COUNTER_RESET)
