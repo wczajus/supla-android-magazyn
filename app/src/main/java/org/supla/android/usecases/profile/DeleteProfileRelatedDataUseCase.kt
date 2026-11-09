@@ -42,6 +42,7 @@ import org.supla.android.data.source.SceneRepository
 import org.supla.android.data.source.TemperatureAndHumidityLogRepository
 import org.supla.android.data.source.TemperatureLogRepository
 import org.supla.android.data.source.VoltageLogRepository
+import org.supla.android.features.details.electricitymeterdetail.energyreserve.EnergyReserveStore
 import org.supla.android.usecases.profile.DeleteProfileUseCase.ProfileRemover
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -71,7 +72,8 @@ class DeleteProfileRelatedDataUseCase @Inject constructor(
   temperatureLogRepository: TemperatureLogRepository,
   temperatureAndHumidityLogRepository: TemperatureAndHumidityLogRepository,
   homePlusThermostatLogRepository: HomePlusThermostatLogRepository,
-  voltageLogRepository: VoltageLogRepository
+  voltageLogRepository: VoltageLogRepository,
+  energyReserveStore: EnergyReserveStore
 ) {
 
   private val profileDependencies: List<ProfileRemover> = listOf(
@@ -98,7 +100,8 @@ class DeleteProfileRelatedDataUseCase @Inject constructor(
     temperatureLogRepository,
     temperatureAndHumidityLogRepository,
     homePlusThermostatLogRepository,
-    voltageLogRepository
+    voltageLogRepository,
+    energyReserveStore
   )
 
   operator fun invoke(profileId: Long): Completable =

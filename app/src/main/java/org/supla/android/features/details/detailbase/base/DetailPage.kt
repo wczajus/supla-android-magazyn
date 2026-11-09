@@ -66,6 +66,7 @@ enum class DetailPage(val item: DetailBottomItem) {
 
   // EM
   EM_GENERAL(DetailBottomItem.GENERAL),
+  EM_RESERVE(DetailBottomItem.RESERVE),
   EM_HISTORY(DetailBottomItem.HISTORY),
   EM_SETTINGS(DetailBottomItem.SETTINGS),
 
@@ -92,6 +93,7 @@ enum class DetailPage(val item: DetailBottomItem) {
 
 enum class DetailBottomItem(@param:DrawableRes val iconRes: Int, @param:StringRes val stringRes: Int) {
   GENERAL(R.drawable.ic_bottom_general, R.string.details_general),
+  RESERVE(R.drawable.ic_bottom_energy_reserve, R.string.reserve_tab),
   SCHEDULE(R.drawable.ic_bottom_schedule, R.string.details_schedule),
   TIMER(R.drawable.ic_bottom_timer, R.string.details_timer),
   HISTORY(R.drawable.ic_bottom_history, R.string.details_history),

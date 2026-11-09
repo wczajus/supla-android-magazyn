@@ -50,6 +50,8 @@ class ProvideChannelDetailTypeUseCase @Inject constructor() : BaseDetailTypeProv
       SuplaFunction.VALVE_PERCENTAGE -> StandardDetailType(DetailPage.VALVE_GENERAL)
       SuplaFunction.THERMOSTAT_HEATPOL_HOMEPLUS ->
         StandardDetailType(listOf(DetailPage.THERMOSTAT_HEATPOL_GENERAL, DetailPage.THERMOSTAT_HEATPOL_HISTORY))
+      SuplaFunction.ELECTRICITY_METER ->
+        StandardDetailType(DetailPage.EM_GENERAL, DetailPage.EM_RESERVE, DetailPage.EM_HISTORY, DetailPage.EM_SETTINGS)
       else -> provide(function)
     }
 

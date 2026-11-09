@@ -25,7 +25,7 @@ android {
     applicationId = "org.supla.android"
     minSdk = libs.versions.minSdk.get().toInt()
     targetSdk = libs.versions.targetSdk.get().toInt()
-    versionCode = 338
+    versionCode = providers.gradleProperty("magazynVersionCode").orElse("338").get().toInt()
     versionName = "26.09"
 
     ndk {
@@ -43,6 +43,16 @@ android {
     isCoreLibraryDesugaringEnabled = true
   }
 
+  signingConfigs {
+    create("magazynTest") {
+      storeFile = rootProject.file(".gradle/magazyn-test-signing.p12")
+      storePassword = "android"
+      keyAlias = "androiddebugkey"
+      keyPassword = "android"
+      storeType = "PKCS12"
+    }
+  }
+
   buildTypes {
     getByName("release") {
       isMinifyEnabled = false
@@ -51,6 +61,8 @@ android {
     create("internaltest") {
       initWith(buildTypes.getByName("debug"))
       applicationIdSuffix = ".t"
+      versionNameSuffix = "-magazyn"
+      signingConfig = signingConfigs.getByName("magazynTest")
     }
     create("internalTestRelease") {
       initWith(buildTypes.getByName("release"))

@@ -1,3 +1,13 @@
+# SUPLA Magazyn
+
+Wersja SUPLA na Androida z lokalnym monitorem jednej puli energii z faktury. Od początkowego salda odejmuje wyłącznie pobór z sieci; energia oddana nie zwiększa puli. Przygotowana do testów z ZAMEL MEW-01.
+
+[Instrukcja i ograniczenia](docs/MAGAZYN_ENERGII.md) · [Testowe APK](https://github.com/wczajus/supla-android-magazyn/releases)
+
+Wariant testowy **SUPLA Magazyn** instaluje się obok oficjalnej aplikacji. To zmodyfikowana wersja społecznościowa; poniżej zachowano opis projektu źródłowego.
+
+---
+
 # supla-android
 
 > Part of **SUPLA** — an open smart home platform that brings together hardware manufacturers, the community, and users.  

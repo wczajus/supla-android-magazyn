@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import org.supla.android.features.details.containerdetail.general.ContainerGeneralScreen
+import org.supla.android.features.details.electricitymeterdetail.energyreserve.EnergyReserveScreen
 import org.supla.android.features.details.electricitymeterdetail.general.ElectricityMeterGeneralScreen
 import org.supla.android.features.details.electricitymeterdetail.history.ElectricityMeterHistoryScreen
 import org.supla.android.features.details.electricitymeterdetail.settings.ElectricityMeterSettingsScreen
@@ -209,6 +210,7 @@ private fun Content(item: ItemBundle, page: DetailPage) =
     DetailPage.VERTICAL_BLIND -> VerticalBlindsScreen(item)
     DetailPage.GARAGE_DOOR_ROLLER -> GarageDoorScreen(item)
     DetailPage.EM_GENERAL -> ElectricityMeterGeneralScreen(item)
+    DetailPage.EM_RESERVE -> EnergyReserveScreen(item)
     DetailPage.EM_HISTORY -> ElectricityMeterHistoryScreen(item)
     DetailPage.EM_SETTINGS -> ElectricityMeterSettingsScreen(item)
     DetailPage.CONTAINER_GENERAL -> ContainerGeneralScreen(item)
