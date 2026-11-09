@@ -25,7 +25,7 @@ android {
     applicationId = "org.supla.android"
     minSdk = libs.versions.minSdk.get().toInt()
     targetSdk = libs.versions.targetSdk.get().toInt()
-    versionCode = 338
+    versionCode = providers.gradleProperty("magazynVersionCode").orElse("338").get().toInt()
     versionName = "26.09"
 
     ndk {
@@ -51,6 +51,7 @@ android {
     create("internaltest") {
       initWith(buildTypes.getByName("debug"))
       applicationIdSuffix = ".t"
+      versionNameSuffix = "-magazyn"
     }
     create("internalTestRelease") {
       initWith(buildTypes.getByName("release"))

@@ -1,0 +1,21 @@
+# SUPLA Magazyn — plan i budowanie
+
+Wersja na Androida dla licznika ZAMEL MEW-01. Jedna ręcznie wprowadzana pula energii z faktury, pomniejszana wyłącznie o pobór energii czynnej z sieci od ustalonej daty. Oddanie energii i współczynnik 0,8 nie uczestniczą w obliczeniach. To pomocniczy licznik wykorzystania puli, nie odwzorowanie faktury dostawcy.
+
+## Etapy
+
+1. Bazowa APK i GitHub Actions; osobna nazwa aplikacji, stały podpis testowy.
+2. Model magazynu, lokalny zapis przypisany do profilu i kanału, obliczenia i testy.
+3. Zakładka magazynu przy liczniku: konfiguracja dat, salda i odczytu początkowego, ikona baterii i saldo.
+4. Odczyty historyczne z API, obsługa braków danych, resetu i końca okresu.
+5. Testy na rzeczywistym MEW-01, korekty i PR do master.
+
+## Budowanie
+
+Projekt upstream wymaga JDK 21, platformy Android 37 i Build Tools 36.0.0. Biblioteki natywne są już w repozytorium. Workflow `.github/workflows/android-magazyn.yml` przygotowuje środowisko, kopiuje istniejące konfiguracje testowe Firebase, uruchamia testy i buduje uniwersalną APK. Udany push publikuje ją w osobnym prerelease; PR publikuje tylko artefakt i raporty testów.
+
+Wariant `internaltest` ma identyfikator `org.supla.android.t`, więc instaluje się obok oficjalnego `org.supla.android`. Nazwa na telefonie: **SUPLA Magazyn**. Po pierwszej instalacji wymaga osobnego dodania konta SUPLA; dane oficjalnej aplikacji nie są automatycznie przenoszone. Konfiguracja Firebase pochodzi z upstreamowego wariantu testowego; powiadomienia push wymagają osobnej weryfikacji i nie są kryterium ukończenia modułu magazynu.
+
+`ci/test-signing.p12.b64` jest celowo publicznym kluczem **wyłącznie do testów** (alias `androiddebugkey`, hasło `android`). Zapewnia identyczny podpis kolejnych APK, niezależnie od runnera. Nie służy do produkcji ani publikacji w Google Play. Nie zastępować go bez zaplanowania ponownej instalacji aplikacji. Numer wersji CI rośnie od 10001.
+
+Gałąź robocza: `feature/magazyn-energii`. Zmiany trafiają do własnego repozytorium, przez PR do `master`.
