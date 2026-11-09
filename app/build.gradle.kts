@@ -73,12 +73,6 @@ android {
   }
 
   sourceSets {
-    getByName("internaltest") {
-      res.directories.add("src/internaltest/res")
-    }
-    getByName("internalTestRelease") {
-      res.directories.add("src/internaltest/res")
-    }
     getByName("main") {
       jniLibs.directories.add("src/main/libs")
     }
