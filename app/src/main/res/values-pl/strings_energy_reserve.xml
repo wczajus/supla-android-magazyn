@@ -65,8 +65,6 @@
   <string name="reserve_history_before">Przed początkiem okresu</string>
   <string name="reserve_history_after">Po początku okresu</string>
   <string name="reserve_history_exact">Dokładnie na początek okresu</string>
-  <string name="reserve_history_before_notice">Ten odczyt pochodzi sprzed wybranej północy. Obliczenia obejmą także energię pobraną między tym odczytem a początkiem okresu.</string>
-  <string name="reserve_history_after_notice">Ten odczyt pochodzi po wybranej północy. Pobór między początkiem okresu a tym odczytem nie zostanie uwzględniony.</string>
   <string name="reserve_error_history_selection">Wybierz i zatwierdź odczyt historyczny sprzed końca ważności albo wpisz stan początkowy ręcznie.</string>
   <string name="reserve_error_history_range">Sprawdź daty okresu i wyszukiwania. Koniec zakresu nie może wypadać przed jego początkiem.</string>
   <string name="reserve_history_bounds">Pokazujemy odczyty z wybranego zakresu, sprzed końca ważności i najpóźniej z bieżącej chwili.</string>
