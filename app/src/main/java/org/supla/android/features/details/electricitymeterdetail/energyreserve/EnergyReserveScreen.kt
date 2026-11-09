@@ -215,9 +215,6 @@ private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
       }
     }
   }
-  if (reserve.baseline.timestamp != reserve.startsAt) {
-    ReserveBaselineNotice(reserve.baseline.timestamp, reserve.startsAt)
-  }
   val lastTimestamp = reserve.lastReading?.timestamp
   if (balance.status == ReserveStatus.EXPIRED && lastTimestamp != null && lastTimestamp < reserve.expiresAt) {
     Text(
@@ -345,16 +342,6 @@ private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
       showHistory = false
     }
   }
-}
-
-@Composable
-private fun ReserveBaselineNotice(timestamp: Long, target: Long) {
-  if (timestamp == target) return
-  Text(
-    stringResource(if (timestamp < target) R.string.reserve_history_before_notice else R.string.reserve_history_after_notice),
-    color = MaterialTheme.colorScheme.tertiary,
-    style = MaterialTheme.typography.bodySmall
-  )
 }
 
 @Composable

@@ -11,7 +11,7 @@ Moduł dla Androida i licznika ZAMEL MEW-01. Monitoruje jedną pulę z faktury, 
 5. Zatwierdź odczyt, następnie zapisz konfigurację. Zapis wymaga dodatniej puli w kWh; puste lub niepoprawne pole blokuje przycisk. Aktywne akcje są zielone, niedostępne szare; pola zachowują czytelny kontrast także podczas edycji. Zmiana dat okresu kasuje wcześniejszy wybór, aby nie użyć niewłaściwego pomiaru.
 6. Jeśli historia jest niedostępna, wybierz ręczny stan początkowy: narastający pobór z sieci, łącznie z trzech faz, na początek okresu. To osobna wartość od salda na fakturze.
 
-Nie wymagamy próbki w ciągu dwóch minut przed północą. Przy wybraniu wcześniejszego odczytu wynik obejmie też pobór od tej próbki do początku okresu. Przy późniejszym odczycie początkowy fragment poboru zostanie pominięty. Przy wyborze widać stronę granicy i faktyczny czas bazowego pomiaru. Szczegółowe objaśnienie wpływu przesunięcia pozostaje w podsumowaniu zapisanego magazynu. Nie interpoluje ani nie wymyśla brakującego odczytu dokładnie na północ.
+Nie wymagamy próbki w ciągu dwóch minut przed północą. Przy wybraniu wcześniejszego odczytu wynik obejmie też pobór od tej próbki do początku okresu. Przy późniejszym odczycie początkowy fragment poboru zostanie pominięty. Przy wyborze widać stronę granicy i faktyczny czas bazowego pomiaru. Pomarańczowy komunikat o przesunięciu względem północy nie jest wyświetlany ani podczas konfiguracji, ani w podsumowaniu. Nie interpoluje ani nie wymyśla brakującego odczytu dokładnie na północ.
 
 Szukane daty są włączne. Nie proponujemy próbek z przyszłości ani z chwili po końcu ważności. Podgląd historii nie zapisuje konfiguracji. Wybór musi zostać potwierdzony, a konfiguracja osobno zapisana.
 

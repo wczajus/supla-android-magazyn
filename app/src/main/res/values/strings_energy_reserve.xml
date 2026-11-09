@@ -65,8 +65,6 @@
   <string name="reserve_history_before">Before the requested start</string>
   <string name="reserve_history_after">After the requested start</string>
   <string name="reserve_history_exact">Exactly at the requested start</string>
-  <string name="reserve_history_before_notice">This reading is before the requested midnight. Consumption will include the energy imported between this reading and the start of the period.</string>
-  <string name="reserve_history_after_notice">This reading is after the requested midnight. Consumption between the start of the period and this reading will not be counted.</string>
   <string name="reserve_error_history_selection">Choose and confirm a historical reading within the validity period, or enter the initial counter manually.</string>
   <string name="reserve_error_history_range">Check the period and search dates. The search end cannot precede its start.</string>
   <string name="reserve_history_bounds">Readings are limited to the selected dates, before the validity deadline and no later than now.</string>
