@@ -59,7 +59,11 @@ data class EnergyReserve(
   val resetDetected: Boolean = false,
   val hourlyEnabled: Boolean = false,
   val retainedPercent: Int = 80,
-  val hourlyProgress: ReserveHourlyProgress? = null
+  val hourlyProgress: ReserveHourlyProgress? = null,
+  val currentReserveEnabled: Boolean = hourlyEnabled,
+  val flowBaseline: ReserveFlowReading? = null,
+  val flowLastReading: ReserveFlowReading? = null,
+  val flowBaselineEstimated: Boolean = false
 ) {
   val startsAt: Long get() = LocalDate.parse(startDate).atStartOfDay(ZoneId.of(zoneId)).toInstant().toEpochMilli()
   val readingStartsAt: Long get() = maxOf(startsAt, baseline.timestamp)
@@ -93,6 +97,7 @@ data class ReserveBalance(
 object ReserveCalculator {
   fun calculate(reserve: EnergyReserve, now: Long): ReserveBalance {
     if (reserve.hourlyEnabled) return calculateHourly(reserve, now)
+    if (reserve.currentReserveEnabled) return calculateUnbalanced(reserve, now)
     if (now < reserve.readingStartsAt) return ReserveBalance(ReserveStatus.NOT_STARTED)
     if (reserve.resetDetected) return ReserveBalance(ReserveStatus.COUNTER_RESET)
     val reading = reserve.lastReading ?: return ReserveBalance(ReserveStatus.NO_READING)
@@ -126,12 +131,46 @@ object ReserveCalculator {
     if (!validStart || progress.boundary.timestamp > minOf(now, reserve.expiresAt)) {
       return ReserveBalance(ReserveStatus.INVALID_READING)
     }
-    val consumed = progress.importedRaw
+    val partial = progress.missingStartUntil != null || ReserveHourly.nextHour(progress.boundary.timestamp) <= minOf(now, reserve.expiresAt)
+    val approximate = partial || progress.interpolatedBoundaries > 0 ||
+      progress.gaps.isNotEmpty() || progress.incompleteReadings.isNotEmpty()
+    return allocate(reserve, now, progress.importedRaw, progress.exportedRaw, approximate, partial)
+  }
+
+  private fun calculateUnbalanced(reserve: EnergyReserve, now: Long): ReserveBalance {
+    if (now < reserve.startsAt) return ReserveBalance(ReserveStatus.NOT_STARTED)
+    if (reserve.resetDetected) return ReserveBalance(ReserveStatus.COUNTER_RESET)
+    val initial = reserve.flowBaseline ?: return ReserveBalance(ReserveStatus.NO_READING)
+    val latest = reserve.flowLastReading ?: return ReserveBalance(ReserveStatus.NO_READING)
+    val cutoff = minOf(now, reserve.expiresAt)
+    if (initial.timestamp < reserve.startsAt || latest.timestamp < initial.timestamp || latest.timestamp > cutoff) {
+      return ReserveBalance(ReserveStatus.INVALID_READING)
+    }
+    if (latest.decreasedFrom(initial)) return ReserveBalance(ReserveStatus.COUNTER_RESET)
+    val partial = initial.timestamp > reserve.startsAt || cutoff - latest.timestamp > ReserveHourly.HOUR_MS ||
+      (now >= reserve.expiresAt && latest.timestamp < reserve.expiresAt)
+    return allocate(
+      reserve,
+      now,
+      latest.importedRaw - initial.importedRaw,
+      latest.exportedRaw - initial.exportedRaw,
+      partial || reserve.flowBaselineEstimated,
+      partial
+    )
+  }
+
+  private fun allocate(
+    reserve: EnergyReserve,
+    now: Long,
+    consumed: Long,
+    exported: Long,
+    approximate: Boolean,
+    partial: Boolean
+  ): ReserveBalance {
     val remaining = (reserve.initialRaw - consumed).coerceAtLeast(0)
-    val credit = ReserveHourly.credited(progress.exportedRaw, reserve.retainedPercent)
+    val credit = if (reserve.currentReserveEnabled) ReserveHourly.credited(exported, reserve.retainedPercent) else 0L
     val afterPrevious = (consumed - reserve.initialRaw).coerceAtLeast(0)
     val currentUsed = minOf(afterPrevious, credit)
-    val partial = progress.missingStartUntil != null || ReserveHourly.nextHour(progress.boundary.timestamp) <= minOf(now, reserve.expiresAt)
     val expired = now >= reserve.expiresAt
     return ReserveBalance(
       status = when {
@@ -144,12 +183,11 @@ object ReserveCalculator {
       remainingRaw = if (expired) 0 else remaining,
       expiredRaw = if (expired) remaining else 0,
       excessRaw = (afterPrevious - credit).coerceAtLeast(0),
-      exportedRaw = progress.exportedRaw,
+      exportedRaw = exported,
       currentCreditedRaw = credit,
       currentUsedRaw = currentUsed,
       currentRemainingRaw = credit - currentUsed,
-      approximate = partial || progress.interpolatedBoundaries > 0 ||
-        progress.gaps.isNotEmpty() || progress.incompleteReadings.isNotEmpty(),
+      approximate = approximate,
       partial = partial
     )
   }

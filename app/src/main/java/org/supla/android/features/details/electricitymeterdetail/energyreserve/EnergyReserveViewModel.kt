@@ -31,7 +31,7 @@ data class EnergyReserveState(
 ) : ViewState() {
   val canSave: Boolean
     get() = !busy && draft.hasValidAmount && when {
-      draft.hourlyEnabled -> true
+      draft.usesAutomaticHistory -> true
       draft.manualBaseline -> ReserveEnergy.parseKwh(draft.baselineKwh) != null
       else -> draft.historicalBaseline != null
     }
@@ -105,9 +105,16 @@ class EnergyReserveViewModel @Inject constructor(
         validUntil = reserve.validUntil,
         manualBaseline = reserve.manualBaseline,
         baselineKwh = ReserveEnergy.kwh(reserve.baseline.importedRaw).stripTrailingZeros().toPlainString(),
-        historicalBaseline = if (reserve.manualBaseline || reserve.hourlyEnabled) null else reserve.baseline,
-        hourlyEnabled = true,
-        retainedPercent = reserve.retainedPercent
+        historicalBaseline = if (reserve.manualBaseline || reserve.hourlyEnabled ||
+          reserve.currentReserveEnabled
+        ) {
+          null
+        } else {
+          reserve.baseline
+        },
+        hourlyEnabled = reserve.hourlyEnabled,
+        retainedPercent = reserve.retainedPercent,
+        currentReserveEnabled = reserve.currentReserveEnabled
       )
     }
     val date = LocalDate.parse(draft.startDate)

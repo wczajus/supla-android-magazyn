@@ -27,8 +27,10 @@ data class ReserveDraft(
   val baselineKwh: String = "",
   val historicalBaseline: ReserveReading? = null,
   val hourlyEnabled: Boolean = false,
-  val retainedPercent: Int = 80
+  val retainedPercent: Int = 80,
+  val currentReserveEnabled: Boolean = hourlyEnabled
 ) {
+  val usesAutomaticHistory: Boolean get() = hourlyEnabled || currentReserveEnabled
   val hasValidAmount: Boolean get() = ReserveEnergy.parseKwh(initialKwh)?.let { it > 0 } == true
 }
 
@@ -57,6 +59,7 @@ class EnergyReserveRepository @Inject constructor(
     ensureProfile(context.profileId)
     val reserve = context.reserve ?: return context
     if (reserve.hourlyEnabled) return refreshHourly(context, reserve)
+    if (reserve.currentReserveEnabled) return refreshUnbalanced(context, reserve)
     if (reserve.resetDetected || dateProvider.currentTimestamp() < reserve.readingStartsAt) return context
     val cutoff = minOf(dateProvider.currentTimestamp(), reserve.expiresAt)
     val reading = readAt(context.channelId, cutoff)
@@ -74,7 +77,92 @@ class EnergyReserveRepository @Inject constructor(
   fun rebuildHistory(context: ReserveContext): ReserveContext {
     ensureProfile(context.profileId)
     val reserve = context.reserve ?: return context
-    return if (reserve.hourlyEnabled) refreshHourly(context, reserve.copy(hourlyProgress = null)) else refresh(context)
+    return when {
+      reserve.hourlyEnabled -> refreshHourly(context, reserve.copy(hourlyProgress = null))
+      reserve.currentReserveEnabled -> refreshUnbalanced(context, reserve.copy(flowBaseline = null, flowLastReading = null))
+      else -> refresh(context)
+    }
+  }
+
+  private fun refreshUnbalanced(context: ReserveContext, reserve: EnergyReserve): ReserveContext {
+    val cutoff = minOf(dateProvider.currentTimestamp(), reserve.expiresAt)
+    if (reserve.resetDetected || cutoff < reserve.startsAt) return context
+    val service = cloudProvider.provide()
+    fun complete(rows: List<ElectricityMeasurement>, ascending: Boolean): ReserveFlowReading? {
+      val sorted = if (ascending) rows.sortedBy { it.date.time } else rows.sortedByDescending { it.date.time }
+      return sorted.firstNotNullOfOrNull {
+        try {
+          it.toReserveFlow()
+        } catch (_: ReserveProblem) {
+          null
+        }
+      }
+    }
+    val latest = complete(
+      service.getElectricityMeasurements(
+        remoteId = context.channelId,
+        order = "DESC",
+        limit = 20,
+        beforeTimestamp = cutoff / 1000 + 1
+      ).blockingFirst().filter { it.date.time <= cutoff },
+      false
+    ) ?: throw ReserveProblem(R.string.reserve_error_hourly_phases)
+    ensureProfile(context.profileId)
+    var estimated = reserve.flowBaselineEstimated
+    val initial = reserve.flowBaseline ?: run {
+      val before = complete(
+        service.getElectricityMeasurements(
+          remoteId = context.channelId,
+          order = "DESC",
+          limit = 20,
+          beforeTimestamp = reserve.startsAt / 1000 + 1
+        ).blockingFirst().filter { it.date.time <= reserve.startsAt },
+        false
+      )
+      ensureProfile(context.profileId)
+      if (before != null && before.timestamp == reserve.startsAt) {
+        estimated = false
+        before
+      } else {
+        val after = complete(
+          service.getElectricityMeasurements(
+            remoteId = context.channelId,
+            order = "ASC",
+            limit = 20,
+            afterTimestamp = reserve.startsAt / 1000 - 1,
+            beforeTimestamp = dateProvider.currentTimestamp() / 1000 + 1
+          ).blockingFirst().filter { it.date.time >= reserve.startsAt && it.date.time <= dateProvider.currentTimestamp() },
+          true
+        ) ?: latest
+        ensureProfile(context.profileId)
+        val points = listOfNotNull(before, after).distinctBy { it.timestamp }.sortedBy { it.timestamp }
+        val baseline = try {
+          val initialCutoff = if (before != null) reserve.startsAt else minOf(cutoff, after.timestamp)
+          ReserveHourly.advance(null, points, reserve.startsAt, initialCutoff).initial
+        } catch (_: ReserveHourlyGap) {
+          throw ReserveProblem(R.string.reserve_error_hourly_history)
+        } catch (_: ReserveHourlyReset) {
+          val reset = reserve.copy(resetDetected = true)
+          write(reset)
+          return context.copy(reserve = reset)
+        }
+        estimated = baseline.timestamp != before?.timestamp && baseline.timestamp != after.timestamp
+        baseline
+      }
+    }
+    if (latest.timestamp < initial.timestamp || reserve.flowLastReading?.let { latest.timestamp < it.timestamp } == true) {
+      throw ReserveProblem(R.string.reserve_error_reading)
+    }
+    ensureProfile(context.profileId)
+    val updated = reserve.copy(
+      flowBaseline = initial,
+      flowLastReading = latest,
+      flowBaselineEstimated = estimated,
+      lastReading = ReserveReading(latest.timestamp, latest.importedRaw, latest.imports),
+      resetDetected = latest.decreasedFrom(initial) || reserve.flowLastReading?.let { latest.decreasedFrom(it) } == true
+    )
+    write(updated)
+    return context.copy(reserve = updated)
   }
 
   private fun refreshHourly(context: ReserveContext, reserve: EnergyReserve): ReserveContext {
@@ -229,7 +317,7 @@ class EnergyReserveRepository @Inject constructor(
     val zone = ZoneId.of("Europe/Warsaw")
     val startsAt = start.atStartOfDay(zone).toInstant().toEpochMilli()
     if (draft.retainedPercent !in listOf(70, 80)) throw ReserveProblem(R.string.reserve_error_coefficient)
-    val baseline = if (draft.hourlyEnabled) {
+    val baseline = if (draft.usesAutomaticHistory) {
       context.reserve?.takeIf { it.startDate == draft.startDate }?.baseline ?: ReserveReading(startsAt, 0)
     } else if (draft.manualBaseline) {
       val raw = ReserveEnergy.parseKwh(draft.baselineKwh) ?: throw ReserveProblem(R.string.reserve_error_baseline)
@@ -251,18 +339,24 @@ class EnergyReserveRepository @Inject constructor(
       validUntil = end.toString(),
       zoneId = zone.id,
       baseline = baseline,
-      manualBaseline = draft.manualBaseline && !draft.hourlyEnabled,
+      manualBaseline = draft.manualBaseline && !draft.usesAutomaticHistory,
       hourlyEnabled = draft.hourlyEnabled,
-      retainedPercent = draft.retainedPercent
+      retainedPercent = draft.retainedPercent,
+      currentReserveEnabled = draft.currentReserveEnabled
     )
     val previous = context.reserve
     val sameBaseline = previous != null && previous.baseline == reserve.baseline && previous.startsAt == reserve.startsAt
     val lastReading = if (sameBaseline) previous?.lastReading?.takeIf { it.timestamp <= reserve.expiresAt } else null
     val samePeriod = previous != null && previous.startDate == reserve.startDate && previous.validUntil == reserve.validUntil
+    val sameUnbalancedPeriod = samePeriod && previous != null && previous.currentReserveEnabled && !previous.hourlyEnabled &&
+      reserve.currentReserveEnabled && !reserve.hourlyEnabled
     val saved = reserve.copy(
       lastReading = lastReading,
       resetDetected = sameBaseline && previous?.resetDetected == true,
-      hourlyProgress = if (samePeriod && previous?.hourlyEnabled == true && reserve.hourlyEnabled) previous.hourlyProgress else null
+      hourlyProgress = if (samePeriod && previous?.hourlyEnabled == true && reserve.hourlyEnabled) previous.hourlyProgress else null,
+      flowBaseline = if (sameUnbalancedPeriod) previous?.flowBaseline else null,
+      flowLastReading = if (sameUnbalancedPeriod) previous?.flowLastReading else null,
+      flowBaselineEstimated = sameUnbalancedPeriod && previous?.flowBaselineEstimated == true
     )
     write(saved)
     return context.copy(reserve = saved)

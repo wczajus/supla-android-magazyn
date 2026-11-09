@@ -116,7 +116,46 @@ class EnergyReserveHistoryViewModelTest {
     model.edit()
     assertTrue(model.getViewState().value.draft.hourlyEnabled)
     assertNull(model.getViewState().value.draft.historicalBaseline)
-    model.updateDraft(model.getViewState().value.draft.copy(hourlyEnabled = false))
+    model.updateDraft(model.getViewState().value.draft.copy(hourlyEnabled = false, currentReserveEnabled = false))
+    assertFalse(model.getViewState().value.canSave)
+  }
+
+  @Test fun `editing preserves the chosen balancing and reserve count independently`() {
+    every { threading.schedulers.io } returns Schedulers.trampoline()
+    every { threading.schedulers.ui } returns Schedulers.trampoline()
+    every { repository.refresh(any()) } answers { firstArg() }
+    for (hourly in listOf(false, true)) {
+      for (current in listOf(false, true)) {
+        val value = EnergyReserve(
+          7, 42, 100, "2026-05-31", "2027-05-30", "Europe/Warsaw", ReserveReading(1, 0), false,
+          hourlyEnabled = hourly, currentReserveEnabled = current
+        )
+        every { repository.loadCache(42) } returns context.copy(reserve = value)
+        val model = EnergyReserveViewModel(repository, dates, messages, threading)
+        model.load(42)
+        model.edit()
+        assertEquals(hourly, model.getViewState().value.draft.hourlyEnabled)
+        assertEquals(current, model.getViewState().value.draft.currentReserveEnabled)
+      }
+    }
+  }
+
+  @Test fun `changing balancing does not change the selected reserve count`() {
+    val model = model()
+    model.updateDraft(draft.copy(currentReserveEnabled = true))
+    model.updateDraft(model.getViewState().value.draft.copy(hourlyEnabled = true))
+    assertTrue(model.getViewState().value.draft.currentReserveEnabled)
+    model.updateDraft(model.getViewState().value.draft.copy(currentReserveEnabled = false))
+    assertTrue(model.getViewState().value.draft.hourlyEnabled)
+    assertTrue(model.getViewState().value.canSave)
+  }
+
+  @Test fun `two arithmetic reserves use automatic history without a legacy baseline input`() {
+    val model = model()
+    model.updateDraft(draft.copy(currentReserveEnabled = true))
+    assertFalse(model.getViewState().value.draft.hourlyEnabled)
+    assertTrue(model.getViewState().value.canSave)
+    model.updateDraft(model.getViewState().value.draft.copy(currentReserveEnabled = false))
     assertFalse(model.getViewState().value.canSave)
   }
 }
