@@ -43,6 +43,16 @@ android {
     isCoreLibraryDesugaringEnabled = true
   }
 
+  signingConfigs {
+    create("magazynTest") {
+      storeFile = rootProject.file(".gradle/magazyn-test-signing.p12")
+      storePassword = "android"
+      keyAlias = "androiddebugkey"
+      keyPassword = "android"
+      storeType = "PKCS12"
+    }
+  }
+
   buildTypes {
     getByName("release") {
       isMinifyEnabled = false
@@ -52,6 +62,7 @@ android {
       initWith(buildTypes.getByName("debug"))
       applicationIdSuffix = ".t"
       versionNameSuffix = "-magazyn"
+      signingConfig = signingConfigs.getByName("magazynTest")
     }
     create("internalTestRelease") {
       initWith(buildTypes.getByName("release"))

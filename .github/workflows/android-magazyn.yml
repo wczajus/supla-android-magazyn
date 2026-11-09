@@ -33,9 +33,9 @@ jobs:
           cp app/drone.google-services.json app/google-services.json
           cp app/src/internaltest/drone.google-services.json app/src/internaltest/google-services.json
           cp app/src/internalTestRelease/drone.google-services.json app/src/internalTestRelease/google-services.json
-          mkdir -p "$HOME/.android"
-          base64 --decode ci/test-signing.p12.b64 > "$HOME/.android/debug.keystore"
-          chmod 600 "$HOME/.android/debug.keystore"
+          mkdir -p .gradle
+          base64 --decode ci/test-signing.p12.b64 > .gradle/magazyn-test-signing.p12
+          chmod 600 .gradle/magazyn-test-signing.p12
           chmod +x gradlew
       - name: Build and run unit tests
         run: ./gradlew :app:assembleInternaltest :app:testDebugUnitTest -PmagazynVersionCode=$((10000 + GITHUB_RUN_NUMBER)) --stacktrace --max-workers=2 -Dorg.gradle.jvmargs=-Xmx4g -Dkotlin.daemon.jvm.options=-Xmx2g
@@ -44,7 +44,8 @@ jobs:
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/internaltest/*universal*.apk dist/supla-magazyn.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/supla-magazyn.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/supla-magazyn.apk | tee dist/signature.txt
+          grep -Fq 'Signer #1 certificate SHA-256 digest: 5f166d6c18942ba593ed09f125ea24982aa6e2ea2f841d2788c26cd39cbd32c0' dist/signature.txt
           (cd dist && sha256sum supla-magazyn.apk > supla-magazyn.apk.sha256)
       - uses: actions/upload-artifact@v4
         with:
@@ -84,4 +85,8 @@ jobs:
         shell: bash
         run: |
           printf 'Testowa wersja SUPLA Magazyn.\n\nGałąź: %s\nCommit: %s\n\nInstaluj supla-magazyn.apk. Aplikacja działa obok oficjalnej SUPLI.\n' "$BUILD_BRANCH" "$BUILD_SHA" > notes.md
+          OBSOLETE_SHA="$(gh release view magazyn-build-5 --json targetCommitish --jq .targetCommitish 2>/dev/null || true)"
+          if [ "$OBSOLETE_SHA" = 'daa67b98ca0a64e83cffd97686469dfe25340a6e' ]; then
+            gh release edit magazyn-build-5 --draft
+          fi
           gh release create "magazyn-build-$BUILD_NUMBER" dist/supla-magazyn.apk dist/supla-magazyn.apk.sha256 --target "$BUILD_SHA" --title "SUPLA Magazyn — build $BUILD_NUMBER" --notes-file notes.md --prerelease --latest=false

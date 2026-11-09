@@ -19,3 +19,5 @@ Wariant `internaltest` ma identyfikator `org.supla.android.t`, więc instaluje s
 `ci/test-signing.p12.b64` jest celowo publicznym kluczem **wyłącznie do testów** (alias `androiddebugkey`, hasło `android`). Zapewnia identyczny podpis kolejnych APK, niezależnie od runnera. Nie służy do produkcji ani publikacji w Google Play. Nie zastępować go bez zaplanowania ponownej instalacji aplikacji. Numer wersji CI rośnie od 10001.
 
 Gałąź robocza: `feature/magazyn-energii`. Zmiany trafiają do własnego repozytorium, przez PR do `master`.
+
+Certyfikat testowy SHA-256: `5F:16:6D:6C:18:94:2B:A5:93:ED:09:F1:25:EA:24:98:2A:A6:E2:EA:2F:84:1D:27:88:C2:6C:D3:9C:BD:32:C0`. Gradle jawnie wskazuje plik `.gradle/magazyn-test-signing.p12`, a workflow sprawdza certyfikat gotowej APK przed publikacją. Lokalnie przed budowaniem należy wykonać `mkdir -p .gradle` i `base64 --decode ci/test-signing.p12.b64 > .gradle/magazyn-test-signing.p12`, a konfiguracje Firebase skopiować tak jak w workflow.
