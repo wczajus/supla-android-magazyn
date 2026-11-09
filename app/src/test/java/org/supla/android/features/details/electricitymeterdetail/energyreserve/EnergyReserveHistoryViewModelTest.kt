@@ -102,4 +102,21 @@ class EnergyReserveHistoryViewModelTest {
     model.updateDraft(draft.copy(hourlyEnabled = true, initialKwh = ""))
     assertFalse(model.getViewState().value.canSave)
   }
+
+  @Test fun `editing an hourly reserve does not offer its internal placeholder as a selected historical reading`() {
+    val value = EnergyReserve(
+      7, 42, 100, "2026-05-31", "2027-05-30", "Europe/Warsaw", ReserveReading(1, 0), false, hourlyEnabled = true
+    )
+    every { threading.schedulers.io } returns Schedulers.trampoline()
+    every { threading.schedulers.ui } returns Schedulers.trampoline()
+    every { repository.loadCache(42) } returns context.copy(reserve = value)
+    every { repository.refresh(any()) } answers { firstArg() }
+    val model = EnergyReserveViewModel(repository, dates, messages, threading)
+    model.load(42)
+    model.edit()
+    assertTrue(model.getViewState().value.draft.hourlyEnabled)
+    assertNull(model.getViewState().value.draft.historicalBaseline)
+    model.updateDraft(model.getViewState().value.draft.copy(hourlyEnabled = false))
+    assertFalse(model.getViewState().value.canSave)
+  }
 }
