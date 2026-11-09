@@ -85,7 +85,9 @@ data class ReserveBalance(
   val exportedRaw: Long = 0,
   val currentCreditedRaw: Long = 0,
   val currentUsedRaw: Long = 0,
-  val currentRemainingRaw: Long = 0
+  val currentRemainingRaw: Long = 0,
+  val approximate: Boolean = false,
+  val partial: Boolean = false
 )
 
 object ReserveCalculator {
@@ -119,7 +121,9 @@ object ReserveCalculator {
     if (now < reserve.startsAt) return ReserveBalance(ReserveStatus.NOT_STARTED)
     if (reserve.resetDetected) return ReserveBalance(ReserveStatus.COUNTER_RESET)
     val progress = reserve.hourlyProgress ?: return ReserveBalance(ReserveStatus.NO_READING)
-    if (progress.initial.timestamp != reserve.startsAt || progress.boundary.timestamp > minOf(now, reserve.expiresAt)) {
+    val validStart = progress.initial.timestamp == reserve.startsAt ||
+      (progress.initial.timestamp > reserve.startsAt && progress.missingStartUntil == progress.initial.timestamp)
+    if (!validStart || progress.boundary.timestamp > minOf(now, reserve.expiresAt)) {
       return ReserveBalance(ReserveStatus.INVALID_READING)
     }
     val consumed = progress.importedRaw
@@ -127,6 +131,7 @@ object ReserveCalculator {
     val credit = ReserveHourly.credited(progress.exportedRaw, reserve.retainedPercent)
     val afterPrevious = (consumed - reserve.initialRaw).coerceAtLeast(0)
     val currentUsed = minOf(afterPrevious, credit)
+    val partial = progress.missingStartUntil != null || ReserveHourly.nextHour(progress.boundary.timestamp) <= minOf(now, reserve.expiresAt)
     val expired = now >= reserve.expiresAt
     return ReserveBalance(
       status = when {
@@ -142,7 +147,10 @@ object ReserveCalculator {
       exportedRaw = progress.exportedRaw,
       currentCreditedRaw = credit,
       currentUsedRaw = currentUsed,
-      currentRemainingRaw = credit - currentUsed
+      currentRemainingRaw = credit - currentUsed,
+      approximate = partial || progress.interpolatedBoundaries > 0 ||
+        progress.gaps.isNotEmpty() || progress.incompleteReadings.isNotEmpty(),
+      partial = partial
     )
   }
 }

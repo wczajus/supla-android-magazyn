@@ -79,13 +79,32 @@
   <string name="reserve_fifo_help">Hourly balanced import uses the invoice allowance first. Only import exceeding it reduces the allowance earned in the current period.</string>
   <string name="reserve_hourly_source">Both allowances: hourly balancing</string>
   <string name="reserve_hourly_until">Completed hours settled through: %1$s</string>
-  <string name="reserve_hourly_estimate">Estimate: hour boundaries were reconstructed from nearby measurements. The result may differ from the supplier settlement.</string>
+  <string name="reserve_hourly_estimate">Estimate: hour boundaries and history gaps were reconstructed from available measurements. See data quality for details.</string>
   <string name="reserve_hourly_enable">Two allowances with hourly balancing</string>
   <string name="reserve_coefficient_label">Exported energy deduction</string>
   <string name="reserve_hourly_setup_help">Both allowances are calculated from midnight on the first day through the last day of the period. We download all three phases of import and export history. The first calculation may take longer. Set a new period and allowance when the next invoice arrives.</string>
   <string name="reserve_current_enable_help">Configure hourly balancing to calculate energy earned since the first day of the period.</string>
   <string name="reserve_current_enable">Enable the second allowance</string>
-  <string name="reserve_error_hourly_history">Insufficient history for hourly balancing. Measurements are required from the period start, without gaps longer than one hour. The previous calculation is retained.</string>
+  <string name="reserve_error_hourly_history">No readings are available to begin calculating the selected period. Check the dates and history availability. The previous result is retained.</string>
   <string name="reserve_error_hourly_phases">Hourly balancing requires import and export counters for all three phases. Missing values are not replaced with zero.</string>
   <string name="reserve_error_coefficient" formatted="false">Choose a deduction of 20% or 30%.</string>
+  <string name="reserve_quality_title">Data quality</string>
+  <string name="reserve_quality_estimated">Estimated balance</string>
+  <string name="reserve_quality_partial">Partial data — estimated balance</string>
+  <string name="reserve_quality_details">History and estimation details</string>
+  <string name="reserve_quality_close">Close</string>
+  <string name="reserve_gap_summary">Estimated gaps: %1$d, total %2$s h.</string>
+  <string name="reserve_partial_help">The result covers only the available range. Unknown energy at the beginning or end was not assumed to be zero. Check the history details.</string>
+  <string name="reserve_quality_help">Estimates preserve import and export increments between readings. The hourly distribution in a gap is unknown, so the balance may differ from the actual settlement. Gap details show complete intervals between readings, including intervals partly outside the period.</string>
+  <string name="reserve_missing_start">Missing beginning: %1$s → %2$s. Calculations begin at the first available reading.</string>
+  <string name="reserve_missing_end">No completed data after: %1$s. The remaining period awaits readings.</string>
+  <string name="reserve_incomplete_rows">Incomplete readings skipped: %1$d. Increments were reconstructed between complete readings where available.</string>
+  <string name="reserve_gap_none">No recorded gaps longer than one hour. Hour boundaries may still be interpolated from nearby readings.</string>
+  <string name="reserve_gap_duration">Gap duration: %1$s h</string>
+  <string name="reserve_gap_energy">Increment between readings: import %1$s kWh, export %2$s kWh.</string>
+  <string name="reserve_gap_profile">Method: matching-hour profile from nearby days.</string>
+  <string name="reserve_gap_uniform">Method: uniform distribution of increments.</string>
+  <string name="reserve_gap_mixed">Mixed method: hourly profile and uniform distribution for counters without sufficient profile data.</string>
+  <string name="reserve_rebuild">Recalculate all history</string>
+  <string name="reserve_rebuild_help">If missing measurements appeared later, recalculate all history to replace earlier estimates. This preserves the invoice allowance and selected deduction.</string>
 </resources>

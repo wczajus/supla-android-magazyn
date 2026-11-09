@@ -79,13 +79,32 @@
   <string name="reserve_fifo_help">Pobór po bilansowaniu godzinowym wykorzystuje najpierw pulę z faktury. Dopiero pobór ponad tę pulę pomniejsza energię zgromadzoną w bieżącym okresie.</string>
   <string name="reserve_hourly_source">Obie pule: bilansowanie godzinowe</string>
   <string name="reserve_hourly_until">Rozliczono pełne godziny do: %1$s</string>
-  <string name="reserve_hourly_estimate">Szacunek: granice godzin odtworzono z sąsiednich pomiarów. Wynik może różnić się od rozliczenia dostawcy.</string>
+  <string name="reserve_hourly_estimate">Szacunek: granice godzin i braki historii odtworzono z dostępnych pomiarów. Szczegóły znajdziesz w jakości danych.</string>
   <string name="reserve_hourly_enable">Dwa magazyny i bilansowanie godzinowe</string>
   <string name="reserve_coefficient_label">Potrącenie energii oddanej</string>
   <string name="reserve_hourly_setup_help">Obliczenia obu pul zaczynają się o północy pierwszego dnia okresu i kończą z ostatnim dniem ważności. Pobieramy historię poboru i oddania z trzech faz. Pierwsze przeliczenie może potrwać dłużej. Po nowej fakturze ustaw nowy okres i nową pulę.</string>
   <string name="reserve_current_enable_help">Skonfiguruj bilansowanie godzinowe, aby obliczyć energię zgromadzoną od pierwszego dnia okresu.</string>
   <string name="reserve_current_enable">Włącz drugi magazyn</string>
-  <string name="reserve_error_hourly_history">Brak wystarczającej historii do bilansowania godzinowego. Potrzebne są pomiary od początku okresu, bez przerw dłuższych niż godzina. Zachowano ostatnie obliczenie.</string>
+  <string name="reserve_error_hourly_history">Brak odczytów pozwalających rozpocząć obliczenia w wybranym okresie. Sprawdź daty lub dostępność historii. Zachowano poprzedni wynik.</string>
   <string name="reserve_error_hourly_phases">Bilansowanie godzinowe wymaga liczników poboru i oddania ze wszystkich trzech faz. Brakujące wartości nie są zastępowane zerem.</string>
   <string name="reserve_error_coefficient" formatted="false">Wybierz potrącenie 20% albo 30%.</string>
+  <string name="reserve_quality_title">Jakość danych</string>
+  <string name="reserve_quality_estimated">Saldo przybliżone</string>
+  <string name="reserve_quality_partial">Dane częściowe — saldo przybliżone</string>
+  <string name="reserve_quality_details">Szczegóły historii i uzupełnień</string>
+  <string name="reserve_quality_close">Zamknij</string>
+  <string name="reserve_gap_summary">Uzupełnione przerwy: %1$d, łącznie %2$s h.</string>
+  <string name="reserve_partial_help">Wynik obejmuje tylko dostępny zakres. Nieznana energia na początku lub końcu okresu nie została przyjęta jako zero. Sprawdź szczegóły historii.</string>
+  <string name="reserve_quality_help">Szacunki zachowują przyrost poboru i oddania między odczytami. Nieznany jest rozkład energii w godzinach przerwy, dlatego saldo może różnić się od rzeczywistego rozliczenia. Szczegóły przerw pokazują pełne przedziały między odczytami, także gdy tylko ich część mieści się w okresie.</string>
+  <string name="reserve_missing_start">Brak początku historii: %1$s → %2$s. Obliczenia rozpoczynają się od pierwszego dostępnego odczytu.</string>
+  <string name="reserve_missing_end">Brak zamkniętych danych po: %1$s. Dalsza część okresu czeka na odczyty.</string>
+  <string name="reserve_incomplete_rows">Pominięte niepełne pomiary: %1$d. Przyrosty odtworzono między kompletnymi odczytami, jeżeli były dostępne.</string>
+  <string name="reserve_gap_none">Brak zarejestrowanych przerw dłuższych niż godzina. Granice godzin nadal mogą być interpolowane z pobliskich pomiarów.</string>
+  <string name="reserve_gap_duration">Długość przerwy: %1$s h</string>
+  <string name="reserve_gap_energy">Przyrost między odczytami: pobór %1$s kWh, oddanie %2$s kWh.</string>
+  <string name="reserve_gap_profile">Metoda: profil podobnych godzin pobliskich dni.</string>
+  <string name="reserve_gap_uniform">Metoda: równomierny rozkład przyrostów.</string>
+  <string name="reserve_gap_mixed">Metoda mieszana: profil godzinowy i rozkład równomierny dla liczników bez wystarczającego profilu.</string>
+  <string name="reserve_rebuild">Przelicz całą historię</string>
+  <string name="reserve_rebuild_help">Jeśli brakujące pomiary pojawiły się później, przelicz całą historię, aby zastąpić wcześniejsze szacunki. Nie zmienia to wartości z faktury ani wybranego potrącenia.</string>
 </resources>
