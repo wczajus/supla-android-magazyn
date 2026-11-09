@@ -28,7 +28,11 @@ data class EnergyReserveState(
   val historyCandidates: List<ReserveReading> = emptyList(),
   val historySearched: Boolean = false,
   @param:StringRes val error: Int? = null
-) : ViewState()
+) : ViewState() {
+  val canSave: Boolean
+    get() = !busy && draft.hasValidAmount &&
+      (if (draft.manualBaseline) ReserveEnergy.parseKwh(draft.baselineKwh) != null else draft.historicalBaseline != null)
+}
 
 sealed class EnergyReserveEvent : ViewEvent
 
@@ -148,6 +152,10 @@ class EnergyReserveViewModel @Inject constructor(
     val state = currentState()
     val context = state.context ?: return
     if (state.busy) return
+    if (!state.draft.hasValidAmount) {
+      updateState { it.copy(error = R.string.reserve_error_amount) }
+      return
+    }
     runOperation({ repository.save(context, state.draft) }) { saved ->
       updateState { it.copy(editing = false) }
       showContext(saved)

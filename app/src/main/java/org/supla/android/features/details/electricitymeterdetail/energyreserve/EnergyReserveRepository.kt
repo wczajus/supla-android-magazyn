@@ -26,7 +26,9 @@ data class ReserveDraft(
   val manualBaseline: Boolean = false,
   val baselineKwh: String = "",
   val historicalBaseline: ReserveReading? = null
-)
+) {
+  val hasValidAmount: Boolean get() = ReserveEnergy.parseKwh(initialKwh)?.let { it > 0 } == true
+}
 
 @Singleton
 class EnergyReserveRepository @Inject constructor(
@@ -122,8 +124,10 @@ class EnergyReserveRepository @Inject constructor(
       }
     }.distinctBy { it.timestamp }
     if (measurements.isNotEmpty() && valid.isEmpty()) throw ReserveProblem(R.string.reserve_error_phases)
-    val candidates = valid.filter { it.timestamp <= target }.sortedByDescending { it.timestamp }.take(3) +
-      valid.filter { it.timestamp > target }.sortedBy { it.timestamp }.take(3)
+    val candidates = listOfNotNull(
+      valid.filter { it.timestamp <= target }.maxByOrNull { it.timestamp },
+      valid.filter { it.timestamp > target }.minByOrNull { it.timestamp }
+    )
     return candidates.sortedWith(compareBy<ReserveReading> { abs(it.timestamp - target) }.thenBy { it.timestamp })
   }
 

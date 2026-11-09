@@ -4,6 +4,7 @@
 
 package org.supla.android.features.details.electricitymeterdetail.energyreserve
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -88,7 +89,7 @@ private fun EnergyReserveContent(state: EnergyReserveState, actions: ReserveActi
         Text(stringResource(it), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error)
       }
       if (state.context == null) {
-        OutlinedButton(onClick = actions.retry, enabled = !state.busy) { Text(stringResource(R.string.reserve_refresh)) }
+        ReserveButton(onClick = actions.retry, enabled = !state.busy) { Text(stringResource(R.string.reserve_refresh)) }
       }
     }
     if (state.editing) {
@@ -98,10 +99,10 @@ private fun EnergyReserveContent(state: EnergyReserveState, actions: ReserveActi
       if (reserve != null && state.balance != null) {
         ReserveOverview(reserve, state.balance)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-          OutlinedButton(onClick = actions.refresh, enabled = !state.busy, modifier = Modifier.weight(1f)) {
+          ReserveButton(onClick = actions.refresh, enabled = !state.busy, modifier = Modifier.weight(1f)) {
             Text(stringResource(R.string.reserve_refresh))
           }
-          OutlinedButton(onClick = actions.edit, enabled = !state.busy, modifier = Modifier.weight(1f)) {
+          ReserveButton(onClick = actions.edit, enabled = !state.busy, modifier = Modifier.weight(1f)) {
             Text(stringResource(R.string.reserve_edit))
           }
         }
@@ -114,13 +115,13 @@ private fun EnergyReserveContent(state: EnergyReserveState, actions: ReserveActi
           ) {
             ReserveBattery(0f, configured = false)
             Text(stringResource(R.string.reserve_empty), style = MaterialTheme.typography.titleMedium)
-            Button(onClick = actions.edit) { Text(stringResource(R.string.reserve_configure)) }
+            ReserveButton(onClick = actions.edit) { Text(stringResource(R.string.reserve_configure)) }
           }
         }
       }
       if (reserve != null || state.error == R.string.reserve_error_storage) {
-        TextButton(onClick = { confirmDelete = true }, enabled = !state.busy) {
-          Text(stringResource(R.string.reserve_delete), color = MaterialTheme.colorScheme.error)
+        ReserveTextButton(onClick = { confirmDelete = true }, enabled = !state.busy) {
+          Text(stringResource(R.string.reserve_delete))
         }
       }
     }
@@ -136,12 +137,12 @@ private fun EnergyReserveContent(state: EnergyReserveState, actions: ReserveActi
       title = { Text(stringResource(R.string.reserve_delete)) },
       text = { Text(stringResource(R.string.reserve_delete_question)) },
       confirmButton = {
-        TextButton(onClick = {
+        ReserveTextButton(onClick = {
           confirmDelete = false
           actions.delete()
         }) { Text(stringResource(R.string.reserve_delete)) }
       },
-      dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.reserve_cancel)) } }
+      dismissButton = { ReserveTextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.reserve_cancel)) } }
     )
   }
 }
@@ -282,6 +283,11 @@ private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
     singleLine = true,
     enabled = enabled,
+    colors = reserveFieldColors(),
+    isError = !draft.hasValidAmount && (draft.initialKwh.isNotEmpty() || state.error == R.string.reserve_error_amount),
+    supportingText = {
+      if (!draft.hasValidAmount) Text(stringResource(R.string.reserve_error_amount))
+    },
     modifier = Modifier.fillMaxWidth()
   )
   ReserveDateInput(R.string.reserve_start_label, draft.startDate, enabled) { actions.draftChanged(draft.copy(startDate = it)) }
@@ -303,6 +309,7 @@ private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
       keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
       singleLine = true,
       enabled = enabled,
+      colors = reserveFieldColors(),
       modifier = Modifier.fillMaxWidth()
     )
     Text(stringResource(R.string.reserve_baseline_help), style = MaterialTheme.typography.bodySmall)
@@ -314,23 +321,22 @@ private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
           Text(stringResource(R.string.reserve_history_selected), style = MaterialTheme.typography.labelLarge)
           Text(displayTime(reading.timestamp, "Europe/Warsaw"), style = MaterialTheme.typography.titleMedium)
           Text("${formatEnergy(reading.importedRaw, 5)} kWh")
-          ReserveBaselineNotice(reading.timestamp, startOfDate(draft.startDate))
         }
       }
     }
-    OutlinedButton(onClick = {
+    ReserveButton(onClick = {
       showHistory = true
       actions.searchHistory()
     }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
       Text(stringResource(R.string.reserve_history_choose))
     }
   }
-  Button(
+  ReserveButton(
     onClick = actions.save,
-    enabled = enabled && (draft.manualBaseline || draft.historicalBaseline != null),
+    enabled = state.canSave,
     modifier = Modifier.fillMaxWidth()
   ) { Text(stringResource(R.string.reserve_save)) }
-  TextButton(onClick = actions.cancel, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+  ReserveTextButton(onClick = actions.cancel, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
     Text(stringResource(R.string.reserve_cancel))
   }
   if (showHistory) {
@@ -359,9 +365,8 @@ private fun ReserveHistoryDialog(
   onSelected: (ReserveReading) -> Unit
 ) {
   val candidates = state.historyCandidates
-  var selected by remember(candidates) {
-    mutableStateOf(state.draft.historicalBaseline?.takeIf { it in candidates } ?: candidates.firstOrNull())
-  }
+  val nearest = candidates.firstOrNull()
+  var selected by remember(candidates) { mutableStateOf(nearest) }
   val target = startOfDate(state.draft.startDate)
   AlertDialog(
     onDismissRequest = onDismiss,
@@ -379,7 +384,7 @@ private fun ReserveHistoryDialog(
         ReserveDateInput(R.string.reserve_history_until, state.historyUntil, !state.busy) {
           actions.historyRangeChanged(state.historyFrom, it)
         }
-        Button(onClick = actions.searchHistory, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+        ReserveButton(onClick = actions.searchHistory, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
           Text(stringResource(R.string.reserve_history_search))
         }
         if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -387,7 +392,7 @@ private fun ReserveHistoryDialog(
         if (state.historySearched && candidates.isEmpty() && !state.busy) {
           Text(stringResource(R.string.reserve_history_empty))
         }
-        candidates.forEachIndexed { index, reading ->
+        candidates.sortedBy { it.timestamp }.forEach { reading ->
           Row(
             Modifier.fillMaxWidth().selectable(
               selected = selected == reading,
@@ -411,26 +416,36 @@ private fun ReserveHistoryDialog(
                 ),
                 style = MaterialTheme.typography.bodySmall
               )
-              if (index == 0) Text(stringResource(R.string.reserve_history_nearest), color = MaterialTheme.colorScheme.primary)
+              if (reading == nearest) Text(stringResource(R.string.reserve_history_nearest), color = MaterialTheme.colorScheme.primary)
             }
           }
         }
-        selected?.let { ReserveBaselineNotice(it.timestamp, target) }
       }
     },
     confirmButton = {
-      TextButton(onClick = { selected?.let(onSelected) }, enabled = !state.busy && selected != null) {
+      ReserveTextButton(onClick = { selected?.let(onSelected) }, enabled = !state.busy && selected != null) {
         Text(stringResource(R.string.reserve_history_use))
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.reserve_cancel)) } }
+    dismissButton = { ReserveTextButton(onClick = onDismiss) { Text(stringResource(R.string.reserve_cancel)) } }
   )
 }
 
 @Composable
 private fun ReserveDateInput(label: Int, date: String, enabled: Boolean, onChanged: (String) -> Unit) {
   var showPicker by remember { mutableStateOf(false) }
-  OutlinedButton(onClick = { showPicker = true }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+  OutlinedButton(
+    onClick = { showPicker = true },
+    enabled = enabled,
+    modifier = Modifier.fillMaxWidth(),
+    colors = ButtonDefaults.outlinedButtonColors(
+      containerColor = MaterialTheme.colorScheme.surface,
+      contentColor = MaterialTheme.colorScheme.onSurface,
+      disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+      disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    ),
+    border = BorderStroke(1.dp, if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
+  ) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
       Text(stringResource(label), style = MaterialTheme.typography.labelSmall)
       Text(displayDate(date), style = MaterialTheme.typography.bodyLarge)
@@ -442,15 +457,74 @@ private fun ReserveDateInput(label: Int, date: String, enabled: Boolean, onChang
     DatePickerDialog(
       onDismissRequest = { showPicker = false },
       confirmButton = {
-        TextButton(onClick = {
-          pickerState.selectedDateMillis?.let { onChanged(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString()) }
-          showPicker = false
-        }) { Text(stringResource(R.string.reserve_save)) }
+        ReserveTextButton(
+          onClick = {
+            pickerState.selectedDateMillis?.let { onChanged(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString()) }
+            showPicker = false
+          },
+          enabled = pickerState.selectedDateMillis != null
+        ) { Text(stringResource(R.string.reserve_save)) }
       },
-      dismissButton = { TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.reserve_cancel)) } }
+      dismissButton = { ReserveTextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.reserve_cancel)) } }
     ) { DatePicker(state = pickerState) }
   }
 }
+
+@Composable
+private fun ReserveButton(
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+  enabled: Boolean = true,
+  content: @Composable RowScope.() -> Unit
+) {
+  Button(
+    onClick = onClick,
+    modifier = modifier,
+    enabled = enabled,
+    colors = ButtonDefaults.buttonColors(
+      containerColor = MaterialTheme.colorScheme.primary,
+      contentColor = MaterialTheme.colorScheme.onPrimary,
+      disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+      disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    ),
+    content = content
+  )
+}
+
+@Composable
+private fun ReserveTextButton(
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+  enabled: Boolean = true,
+  content: @Composable RowScope.() -> Unit
+) {
+  TextButton(
+    onClick = onClick,
+    modifier = modifier,
+    enabled = enabled,
+    colors = ButtonDefaults.textButtonColors(
+      contentColor = MaterialTheme.colorScheme.primary,
+      disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    ),
+    content = content
+  )
+}
+
+@Composable
+private fun reserveFieldColors() = OutlinedTextFieldDefaults.colors(
+  focusedTextColor = MaterialTheme.colorScheme.onSurface,
+  unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+  disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+  focusedContainerColor = MaterialTheme.colorScheme.surface,
+  unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+  disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+  focusedBorderColor = MaterialTheme.colorScheme.primary,
+  unfocusedBorderColor = MaterialTheme.colorScheme.primary,
+  disabledBorderColor = MaterialTheme.colorScheme.outline,
+  focusedLabelColor = MaterialTheme.colorScheme.primary,
+  unfocusedLabelColor = MaterialTheme.colorScheme.onSurface,
+  cursorColor = MaterialTheme.colorScheme.primary
+)
 
 private fun formatEnergy(raw: Long, fractionDigits: Int = 3): String = NumberFormat.getNumberInstance().apply {
   maximumFractionDigits = fractionDigits

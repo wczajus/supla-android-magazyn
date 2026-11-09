@@ -7,11 +7,11 @@ Moduł dla Androida i licznika ZAMEL MEW-01. Monitoruje jedną pulę z faktury, 
 1. Otwórz samodzielny kanał licznika → **Magazyn → Skonfiguruj magazyn**.
 2. Wpisz pulę z faktury w kWh, pierwszy dzień okresu oraz ostatni dzień ważności (włącznie). Daty liczymy w Europe/Warsaw, z uwzględnieniem zmiany czasu.
 3. Dla automatycznej konfiguracji naciśnij **Wybierz odczyt z historii**. Domyślny zakres obejmuje dzień przed wskazaną datą, wybrany dzień i dzień po nim. Możesz zmienić obie granice, np. przeszukać wcześniejszy rok.
-4. Aplikacja pyta o najbliższe próbki przed północą i po niej, bez pobierania całego roku danych. Pokazuje do trzech odczytów z każdej strony, uporządkowanych według odległości od północy. Widać rzeczywistą datę, godzinę, stan w kWh i oznaczenie najbliższej próbki.
-5. Zatwierdź odczyt, następnie zapisz konfigurację. Zmiana dat okresu kasuje wcześniejszy wybór, aby nie użyć niewłaściwego pomiaru.
+4. Aplikacja pyta o najbliższe próbki przed północą i po niej, bez pobierania całego roku danych. Pokazuje najwyżej dwa odczyty: najbliższy przed granicą (lub dokładnie o północy) i najbliższy po niej, w kolejności chronologicznej. Domyślnie zaznacza odczyt najbliższy północy; przy remisie wcześniejszy. Widać rzeczywistą datę, godzinę, stan w kWh i oznaczenie najbliższej próbki.
+5. Zatwierdź odczyt, następnie zapisz konfigurację. Zapis wymaga dodatniej puli w kWh; puste lub niepoprawne pole blokuje przycisk. Aktywne akcje są zielone, niedostępne szare; pola zachowują czytelny kontrast także podczas edycji. Zmiana dat okresu kasuje wcześniejszy wybór, aby nie użyć niewłaściwego pomiaru.
 6. Jeśli historia jest niedostępna, wybierz ręczny stan początkowy: narastający pobór z sieci, łącznie z trzech faz, na początek okresu. To osobna wartość od salda na fakturze.
 
-Nie wymagamy próbki w ciągu dwóch minut przed północą. Przy wybraniu wcześniejszego odczytu wynik obejmie też pobór od tej próbki do początku okresu. Przy późniejszym odczycie początkowy fragment poboru zostanie pominięty. Aplikacja wyjaśnia ten efekt przed zatwierdzeniem i pokazuje faktyczny czas bazowego pomiaru. Nie interpoluje ani nie wymyśla brakującego odczytu dokładnie na północ.
+Nie wymagamy próbki w ciągu dwóch minut przed północą. Przy wybraniu wcześniejszego odczytu wynik obejmie też pobór od tej próbki do początku okresu. Przy późniejszym odczycie początkowy fragment poboru zostanie pominięty. Przy wyborze widać stronę granicy i faktyczny czas bazowego pomiaru. Szczegółowe objaśnienie wpływu przesunięcia pozostaje w podsumowaniu zapisanego magazynu. Nie interpoluje ani nie wymyśla brakującego odczytu dokładnie na północ.
 
 Szukane daty są włączne. Nie proponujemy próbek z przyszłości ani z chwili po końcu ważności. Podgląd historii nie zapisuje konfiguracji. Wybór musi zostać potwierdzony, a konfiguracja osobno zapisana.
 
