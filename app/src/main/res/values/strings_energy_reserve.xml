@@ -2,13 +2,13 @@
 <resources>
   <string name="reserve_tab">Reserve</string>
   <string name="reserve_title">Energy reserve</string>
-  <string name="reserve_description">Monitor the previous invoice allowance and optionally energy earned in the current period. Select the balancing method independently.</string>
+  <string name="reserve_description">Monitor the energy allowance from the previous billing period and optionally the energy accumulated in the current billing period.</string>
   <string name="reserve_empty">Add the allowance from your bill</string>
   <string name="reserve_configure">Configure reserve</string>
   <string name="reserve_remaining">Remaining</string>
-  <string name="reserve_initial">Initial allowance</string>
-  <string name="reserve_used">Used from allowance</string>
-  <string name="reserve_imported">Grid import in this period</string>
+  <string name="reserve_initial">Initial reserve balance</string>
+  <string name="reserve_used">Used from the reserve</string>
+  <string name="reserve_imported">Imported from the grid</string>
   <string name="reserve_excess">Uncovered grid import</string>
   <string name="reserve_expired_amount">Unused at last reading</string>
   <string name="reserve_active">Available allowance</string>
@@ -68,15 +68,15 @@
   <string name="reserve_error_history_selection">Choose and confirm a historical reading within the validity period, or enter the initial counter manually.</string>
   <string name="reserve_error_history_range">Check the period and search dates. The search end cannot precede its start.</string>
   <string name="reserve_history_bounds">Readings are limited to the selected dates, before the validity deadline and no later than now.</string>
-  <string name="reserve_previous_title">Previous period — invoice allowance</string>
-  <string name="reserve_current_title">Current period — new allowance</string>
+  <string name="reserve_previous_title">Energy from the previous billing period</string>
+  <string name="reserve_current_title">Energy from the current billing period</string>
   <string name="reserve_current_remaining">Available from the current period</string>
-  <string name="reserve_export_hourly">Export after hourly balancing</string>
-  <string name="reserve_current_credited">Credited after deduction</string>
-  <string name="reserve_current_used">Used from the new allowance</string>
+  <string name="reserve_export_hourly">Exported to the grid after hourly balancing</string>
+  <string name="reserve_current_credited">Accumulated in the reserve - %1$d%%</string>
+  <string name="reserve_current_used">Used from the reserve</string>
   <string name="reserve_total_available">Total available in both allowances</string>
   <string name="reserve_retained">Deduction %1$d%% — %2$d%% available</string>
-  <string name="reserve_fifo_help">Import uses the invoice allowance first. Only import exceeding it reduces energy earned in the current period.</string>
+  <string name="reserve_fifo_help">Energy accumulated in the previous billing period is used first, followed by energy from the current period.</string>
   <string name="reserve_hourly_source">Hourly balancing</string>
   <string name="reserve_hourly_until">Completed hours settled through: %1$s</string>
   <string name="reserve_hourly_estimate">Estimate: hour boundaries and history gaps were reconstructed from available measurements. See data quality for details.</string>
@@ -114,4 +114,6 @@
   <string name="reserve_raw_partial">Estimated balance for the available part of the period. Beginning or ending data is missing.</string>
   <string name="reserve_raw_start_estimate">The initial counter state was estimated from nearby readings.</string>
   <string name="reserve_export_raw">Grid export (without balancing)</string>
+  <string name="reserve_available_percentage">Available energy - %1$s</string>
+  <string name="reserve_data_until">Data through: %1$s</string>
 </resources>

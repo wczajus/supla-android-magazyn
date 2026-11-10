@@ -2,13 +2,13 @@
 <resources>
   <string name="reserve_tab">Magazyn</string>
   <string name="reserve_title">Magazyn energii</string>
-  <string name="reserve_description">Monitoruj pulę z poprzedniej faktury i opcjonalnie energię zgromadzoną w bieżącym okresie. Metodę bilansowania wybierasz niezależnie.</string>
+  <string name="reserve_description">Monitoruj pulę energii z poprzedniego okresu rozliczeniowego i opcjonalnie energię zgromadzoną w bieżącym okresie rozliczeniowym.</string>
   <string name="reserve_empty">Dodaj pulę energii z faktury</string>
   <string name="reserve_configure">Skonfiguruj magazyn</string>
   <string name="reserve_remaining">Pozostało do wykorzystania</string>
-  <string name="reserve_initial">Pula początkowa</string>
-  <string name="reserve_used">Wykorzystano z puli</string>
-  <string name="reserve_imported">Pobór z sieci w okresie</string>
+  <string name="reserve_initial">Początkowy stan magazynu</string>
+  <string name="reserve_used">Wykorzystano z magazynu</string>
+  <string name="reserve_imported">Pobrano z sieci</string>
   <string name="reserve_excess">Pobór niepokryty przez magazyny</string>
   <string name="reserve_expired_amount">Niewykorzystane przy ostatnim odczycie</string>
   <string name="reserve_active">Pula dostępna</string>
@@ -68,15 +68,15 @@
   <string name="reserve_error_history_selection">Wybierz i zatwierdź odczyt historyczny sprzed końca ważności albo wpisz stan początkowy ręcznie.</string>
   <string name="reserve_error_history_range">Sprawdź daty okresu i wyszukiwania. Koniec zakresu nie może wypadać przed jego początkiem.</string>
   <string name="reserve_history_bounds">Pokazujemy odczyty z wybranego zakresu, sprzed końca ważności i najpóźniej z bieżącej chwili.</string>
-  <string name="reserve_previous_title">Poprzedni okres — pula z faktury</string>
-  <string name="reserve_current_title">Bieżący okres — nowa pula</string>
+  <string name="reserve_previous_title">Energia z poprzedniego okresu rozliczeniowego</string>
+  <string name="reserve_current_title">Energia z bieżącego okresu rozliczeniowego</string>
   <string name="reserve_current_remaining">Dostępne z bieżącego okresu</string>
-  <string name="reserve_export_hourly">Oddano po bilansowaniu godzinowym</string>
-  <string name="reserve_current_credited">Zgromadzono po potrąceniu</string>
-  <string name="reserve_current_used">Wykorzystano z nowej puli</string>
+  <string name="reserve_export_hourly">Oddano do sieci po bilansowaniu godzinowym</string>
+  <string name="reserve_current_credited">Zgromadzono w magazynie - %1$d%%</string>
+  <string name="reserve_current_used">Wykorzystano z magazynu</string>
   <string name="reserve_total_available">Łącznie dostępne w obu pulach</string>
   <string name="reserve_retained">Potrącenie %1$d%% — do odbioru %2$d%%</string>
-  <string name="reserve_fifo_help">Pobór wykorzystuje najpierw pulę z faktury. Dopiero pobór ponad tę pulę pomniejsza energię zgromadzoną w bieżącym okresie.</string>
+  <string name="reserve_fifo_help">W pierwszej kolejności wykorzystywana jest energia zgromadzona w poprzednim okresie rozliczeniowym. Następnie energia z bieżącego okresu.</string>
   <string name="reserve_hourly_source">Bilansowanie godzinowe</string>
   <string name="reserve_hourly_until">Rozliczono pełne godziny do: %1$s</string>
   <string name="reserve_hourly_estimate">Szacunek: granice godzin i braki historii odtworzono z dostępnych pomiarów. Szczegóły znajdziesz w jakości danych.</string>
@@ -114,4 +114,6 @@
   <string name="reserve_raw_partial">Saldo przybliżone dla dostępnego fragmentu okresu. Brakuje danych na początku lub końcu.</string>
   <string name="reserve_raw_start_estimate">Stan na początek okresu oszacowano z sąsiednich odczytów.</string>
   <string name="reserve_export_raw">Oddano do sieci (bez bilansowania)</string>
+  <string name="reserve_available_percentage">Dostępna Energia - %1$s</string>
+  <string name="reserve_data_until">Dane do: %1$s</string>
 </resources>

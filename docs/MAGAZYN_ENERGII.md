@@ -42,3 +42,11 @@ Klucz jest celowo publicznym kluczem deweloperskim, wspólnym z dotychczasowymi 
 ## Weryfikacja na telefonie
 
 Testy automatyczne korzystają z fikcyjnych odczytów. Na rzeczywistym MEW-01 należy sprawdzić pobieranie historii, wybór daty i próbki, ręczne porównanie salda, działanie offline oraz wygląd w obu motywach. Zmiany przechodzą przez PR i po zielonych kontrolach są scalane do `master`.
+
+## Układ ekranu
+
+Kolejność: pasek licznika i tytuł → opis → poprzedni magazyn z jego szczegółami w jednej karcie → opcjonalny bieżący magazyn → karta jakości danych → Odśwież/Edytuj → stopka. Procent poprzedniej puli to pozostała energia podzielona przez początkową, a bieżącej — pozostała energia podzielona przez zgromadzoną po potrąceniu. Przy zerowej zgromadzonej energii pokazujemy 0%. Wartość procentowa ma najwyżej jedno miejsce po przecinku.
+
+Karta poprzedniego magazynu zawiera początkowy stan, wykorzystanie, pobór i jeden czas rozliczenia danych. Metoda bilansowania, objaśnienie szacunku i powtórzony ostatni pomiar nie są wyświetlane w tej karcie; szczegóły jakości pozostają w osobnej karcie poniżej magazynów. W bieżącym magazynie współczynnik 80%/70% jest częścią etykiety zgromadzonej energii.
+
+„Usuń magazyn” jest dostępne w edycji, z dotychczasowym potwierdzeniem. Przy błędzie odczytu konfiguracji przycisk Edytuj prowadzi do tego samego miejsca, aby nadal można było usunąć uszkodzony zapis.
