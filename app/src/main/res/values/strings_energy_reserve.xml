@@ -2,7 +2,6 @@
 <resources>
   <string name="reserve_tab">Reserve</string>
   <string name="reserve_title">Energy reserve</string>
-  <string name="reserve_description">Monitor the energy allowance from the previous billing period and optionally the energy accumulated in the current billing period.</string>
   <string name="reserve_empty">Add the allowance from your bill</string>
   <string name="reserve_configure">Configure reserve</string>
   <string name="reserve_remaining">Remaining</string>
@@ -68,8 +67,8 @@
   <string name="reserve_error_history_selection">Choose and confirm a historical reading within the validity period, or enter the initial counter manually.</string>
   <string name="reserve_error_history_range">Check the period and search dates. The search end cannot precede its start.</string>
   <string name="reserve_history_bounds">Readings are limited to the selected dates, before the validity deadline and no later than now.</string>
-  <string name="reserve_previous_title">Energy from the previous billing period</string>
-  <string name="reserve_current_title">Energy from the current billing period</string>
+  <string name="reserve_previous_title">Energy from the previous\nbilling period</string>
+  <string name="reserve_current_title">Energy from the current\nbilling period</string>
   <string name="reserve_current_remaining">Available from the current period</string>
   <string name="reserve_export_hourly">Exported to the grid after hourly balancing</string>
   <string name="reserve_current_credited">Accumulated in the reserve - %1$d%%</string>
