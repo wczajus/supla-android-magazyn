@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Test build retention
+        run: node --test ci/retain-build-artifacts.test.cjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -97,3 +99,24 @@ jobs:
             RELEASE_OPTIONS=(--latest)
           fi
           gh release create "magazyn-build-$BUILD_NUMBER" dist/supla-magazyn.apk dist/supla-magazyn.apk.sha256 --target "$BUILD_SHA" --title "SUPLA Magazyn — release $BUILD_NUMBER" --notes-file notes.md "${RELEASE_OPTIONS[@]}"
+
+  cleanup:
+    needs: [build, publish]
+    if: >-
+      always() && github.repository == 'wczajus/supla-android-magazyn' &&
+      needs.build.result == 'success' && (needs.publish.result == 'success' || needs.publish.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: write
+    concurrency:
+      group: magazyn-build-file-retention
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep files from the two newest successful builds
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await require('./ci/retain-build-artifacts.cjs')({ github, context, core });

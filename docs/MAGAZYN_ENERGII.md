@@ -33,6 +33,8 @@ Spadek sumy lub jednej fazy między dostępnymi odczytami blokuje saldo do korek
 
 Workflow `.github/workflows/android-magazyn.yml` buduje niedebugowalny wariant `internalTestRelease`, uruchamia pełne testy `testInternalTestReleaseUnitTest` oraz `spotlessCheck`. Sprawdza podpis APK, identyfikator, nazwę i brak flagi debuggable. Gałęzie `feature/**` publikują podgląd jako prerelease. Po scaleniu `master` publikuje zwykły Release z plikiem `supla-magazyn.apk` i sumą SHA-256.
 
+Po udanej budowie i publikacji job `cleanup` zachowuje pliki tylko z dwóch najnowszych udanych buildów tego workflow (łącznie ze wszystkich gałęzi). Usuwa APK i sumę kontrolną ze starszych wydań/prerelease oraz artefakty Actions, w tym raporty, ze starszych zakończonych przebiegów. Historia wydań, tagi i logi workflow pozostają. Trwające przebiegi są chronione do kolejnego czyszczenia. Build ręczny bez publikacji też podlega tej regule; nieudana budowa/publikacja nie uruchamia czyszczenia. Przed usuwaniem sprawdzamy obecność nowego artefaktu APK, a błędy API inne niż brak już usuniętego pliku zatrzymują job. Regułę i jej zabezpieczenia weryfikuje `node --test ci/retain-build-artifacts.test.cjs`.
+
 Aplikacja **SUPLA Magazyn** ma identyfikator `org.supla.android.t`, więc działa obok oficjalnej SUPLI. Zachowuje podpis poprzednich APK i rosnący versionCode, aby umożliwić aktualizację z zachowaniem danych. Pierwsza instalacja wymaga osobnego dodania konta SUPLA. Konfiguracja Firebase pozostaje wariantem testowym upstreamu; powiadomienia push nie zostały sprawdzone z prywatną instalacją użytkownika.
 
 Budowanie wymaga JDK 21, platformy SDK `platforms;android-37.0` i Build Tools 36.0.0. Natywne biblioteki są w repozytorium. Workflow kopiuje konfiguracje `drone.google-services.json` do odpowiadających plików `google-services.json` i dekoduje `ci/test-signing.p12.b64` do `.gradle/magazyn-test-signing.p12`.
@@ -45,8 +47,10 @@ Testy automatyczne korzystają z fikcyjnych odczytów. Na rzeczywistym MEW-01 na
 
 ## Układ ekranu
 
-Kolejność: pasek licznika i tytuł → opis → poprzedni magazyn z jego szczegółami w jednej karcie → opcjonalny bieżący magazyn → karta jakości danych → Odśwież/Edytuj → stopka. Procent poprzedniej puli to pozostała energia podzielona przez początkową, a bieżącej — pozostała energia podzielona przez zgromadzoną po potrąceniu. Przy zerowej zgromadzonej energii pokazujemy 0%. Wartość procentowa ma najwyżej jedno miejsce po przecinku.
+Kolejność: pasek licznika i tytuł → opis → poprzedni magazyn z jego szczegółami w jednej karcie → opcjonalny bieżący magazyn → suma obu magazynów → karta jakości danych → Odśwież/Edytuj → stopka. Suma pojawia się tylko przy włączonym drugim magazynie: dodajemy pozostałe salda bez ponownego potrącania współczynnika, z oznaczeniem przybliżenia i bez baterii/procentu. Przy niepoprawnym pomiarze nie pokazujemy fałszywego zera. Procent poprzedniej puli to pozostała energia podzielona przez początkową, a bieżącej — pozostała energia podzielona przez zgromadzoną po potrąceniu. Przy zerowej zgromadzonej energii pokazujemy 0%. Wartość procentowa ma najwyżej jedno miejsce po przecinku.
 
 Karta poprzedniego magazynu zawiera początkowy stan, wykorzystanie, pobór i jeden czas rozliczenia danych. Metoda bilansowania, objaśnienie szacunku i powtórzony ostatni pomiar nie są wyświetlane w tej karcie; szczegóły jakości pozostają w osobnej karcie poniżej magazynów. W bieżącym magazynie współczynnik 80%/70% jest częścią etykiety zgromadzonej energii.
 
 „Usuń magazyn” jest dostępne w edycji, z dotychczasowym potwierdzeniem. Przy błędzie odczytu konfiguracji przycisk Edytuj prowadzi do tego samego miejsca, aby nadal można było usunąć uszkodzony zapis.
+
+Energia i daty w formularzu mają wspólny styl `OutlinedTextField`; datę wybiera się przez dotknięcie pola lub ikony kalendarza. Ikona informacji obok „Bilansowanie godzinowe” otwiera przewijane wyjaśnienie obu trybów, przykładu godzinowego, kolejności wykorzystania magazynów i współczynnika.

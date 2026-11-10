@@ -33,7 +33,7 @@
   <string name="reserve_delete_question">Remove this local reserve and its saved readings?</string>
   <string name="reserve_save">Save configuration</string>
   <string name="reserve_cancel">Cancel</string>
-  <string name="reserve_amount_label">Allowance from bill (kWh)</string>
+  <string name="reserve_amount_label">Reserve balance from the settlement invoice (kWh)</string>
   <string name="reserve_start_label">First day of period</string>
   <string name="reserve_end_label">Last day of validity (inclusive)</string>
   <string name="reserve_timezone">Dates use the Europe/Warsaw time zone.</string>
@@ -74,7 +74,7 @@
   <string name="reserve_export_hourly">Exported to the grid after hourly balancing</string>
   <string name="reserve_current_credited">Accumulated in the reserve - %1$d%%</string>
   <string name="reserve_current_used">Used from the reserve</string>
-  <string name="reserve_total_available">Total available in both allowances</string>
+  <string name="reserve_total_available">Total available energy</string>
   <string name="reserve_retained">Deduction %1$d%% — %2$d%% available</string>
   <string name="reserve_fifo_help">Energy accumulated in the previous billing period is used first, followed by energy from the current period.</string>
   <string name="reserve_hourly_source">Hourly balancing</string>
@@ -116,4 +116,11 @@
   <string name="reserve_export_raw">Grid export (without balancing)</string>
   <string name="reserve_available_percentage">Available energy - %1$s</string>
   <string name="reserve_data_until">Data through: %1$s</string>
+  <string name="reserve_total_unavailable">The total for both reserves will be available after a valid measurement.</string>
+  <string name="reserve_balancing_help_title">How does hourly balancing work?</string>
+  <string name="reserve_balancing_help_on">Enabled: for each completed hour, subtract exported energy from imported energy across all three phases. Only net import or export remains. Example: 5 kWh imported and 3 kWh exported leaves 2 kWh of import. Missing history can make the result approximate.</string>
+  <string name="reserve_balancing_help_off">Disabled: use cumulative meter increases since the period start or selected reading. All import reduces the reserve, without subtracting exports from the same hour. If the second reserve is enabled, all export adds to it after the 20% or 30% deduction.</string>
+  <string name="reserve_balancing_help_pools">In both modes, import uses the previous reserve first, then the current reserve. The invoice balance already includes the deduction and is not reduced again. With the second reserve disabled, exports do not create a new allowance.</string>
+  <string name="reserve_help_close">Got it</string>
+  <string name="reserve_choose_date">Choose date: %1$s</string>
 </resources>
