@@ -45,6 +45,7 @@ import org.supla.android.core.ui.theme.SuplaTheme
 import org.supla.android.extensions.suplaCard
 import org.supla.android.features.details.detailbase.base.ItemBundle
 import org.supla.android.main.ViewModelHost
+import java.math.RoundingMode
 import java.text.NumberFormat
 import java.time.Instant
 import java.time.LocalDate
@@ -98,7 +99,6 @@ private fun EnergyReserveContent(state: EnergyReserveState, actions: ReserveActi
     verticalArrangement = Arrangement.spacedBy(Distance.small)
   ) {
     Text(stringResource(R.string.reserve_title), style = MaterialTheme.typography.headlineSmall)
-    Text(stringResource(R.string.reserve_description), style = MaterialTheme.typography.bodyMedium)
     if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
     state.error?.let {
       Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
@@ -223,7 +223,7 @@ private fun ReserveHistoryQuality(reserve: EnergyReserve, balance: ReserveBalanc
               style = MaterialTheme.typography.labelLarge
             )
             Text(stringResource(R.string.reserve_gap_duration, formatHours(gap.until - gap.from)))
-            Text(stringResource(R.string.reserve_gap_energy, formatEnergy(gap.importedRaw, 5), formatEnergy(gap.exportedRaw, 5)))
+            Text(stringResource(R.string.reserve_gap_energy, formatEnergy(gap.importedRaw), formatEnergy(gap.exportedRaw)))
             Text(
               stringResource(
                 when (gap.method) {
@@ -349,7 +349,7 @@ private fun ReserveTotalOverview(reserve: EnergyReserve, balance: ReserveBalance
     if (available) {
       val currentRemaining = if (reserve.currentReserveEnabled) balance.currentRemainingRaw else 0L
       val total = ReserveEnergy.kwh(balance.remainingRaw).add(ReserveEnergy.kwh(currentRemaining))
-      val formattedTotal = NumberFormat.getNumberInstance().apply { maximumFractionDigits = 3 }.format(total)
+      val formattedTotal = formatNumber(total)
       ReserveEnergyValue("${if (balance.approximate) "≈ " else ""}$formattedTotal kWh")
     } else {
       Text(stringResource(R.string.reserve_total_unavailable), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
@@ -548,7 +548,7 @@ private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
           HorizontalDivider()
           Text(stringResource(R.string.reserve_history_selected), style = MaterialTheme.typography.labelMedium)
           Text(displayTime(reading.timestamp, "Europe/Warsaw"), style = MaterialTheme.typography.bodyMedium)
-          Text("${formatEnergy(reading.importedRaw, 5)} kWh", style = MaterialTheme.typography.labelMedium)
+          Text("${formatEnergy(reading.importedRaw)} kWh", style = MaterialTheme.typography.labelMedium)
         }
         ReserveButton(onClick = {
           showHistory = true
@@ -639,7 +639,7 @@ private fun ReserveHistoryDialog(
             RadioButton(selected = selected == reading, onClick = null, enabled = !state.busy)
             Column(Modifier.weight(1f).padding(start = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
               Text(displayTime(reading.timestamp, "Europe/Warsaw"), style = MaterialTheme.typography.titleSmall)
-              Text("${formatEnergy(reading.importedRaw, 5)} kWh")
+              Text("${formatEnergy(reading.importedRaw)} kWh")
               Text(
                 stringResource(
                   when {
@@ -779,16 +779,20 @@ private fun reserveFieldColors() = OutlinedTextFieldDefaults.colors(
 )
 
 private fun formatPercentage(fraction: Float): String = NumberFormat.getPercentInstance().apply {
+  minimumFractionDigits = 1
   maximumFractionDigits = 1
+  roundingMode = RoundingMode.HALF_UP
 }.format(fraction.coerceIn(0f, 1f).toDouble())
 
-private fun formatHours(milliseconds: Long): String = NumberFormat.getNumberInstance().apply {
-  maximumFractionDigits = 2
-}.format(milliseconds.toDouble() / ReserveHourly.HOUR_MS)
+private fun formatHours(milliseconds: Long): String = formatNumber(milliseconds.toDouble() / ReserveHourly.HOUR_MS)
 
-private fun formatEnergy(raw: Long, fractionDigits: Int = 3): String = NumberFormat.getNumberInstance().apply {
-  maximumFractionDigits = fractionDigits
-}.format(ReserveEnergy.kwh(raw))
+private fun formatEnergy(raw: Long): String = formatNumber(ReserveEnergy.kwh(raw))
+
+private fun formatNumber(value: Number): String = NumberFormat.getNumberInstance().apply {
+  minimumFractionDigits = 1
+  maximumFractionDigits = 1
+  roundingMode = RoundingMode.HALF_UP
+}.format(value)
 
 private fun startOfDate(date: String): Long = LocalDate.parse(date).atStartOfDay(ZoneId.of("Europe/Warsaw")).toInstant().toEpochMilli()
 

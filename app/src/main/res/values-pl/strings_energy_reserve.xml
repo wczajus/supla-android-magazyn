@@ -2,7 +2,6 @@
 <resources>
   <string name="reserve_tab">Magazyn</string>
   <string name="reserve_title">Magazyn energii</string>
-  <string name="reserve_description">Monitoruj pulę energii z poprzedniego okresu rozliczeniowego i opcjonalnie energię zgromadzoną w bieżącym okresie rozliczeniowym.</string>
   <string name="reserve_empty">Dodaj pulę energii z faktury</string>
   <string name="reserve_configure">Skonfiguruj magazyn</string>
   <string name="reserve_remaining">Pozostało do wykorzystania</string>
@@ -68,8 +67,8 @@
   <string name="reserve_error_history_selection">Wybierz i zatwierdź odczyt historyczny sprzed końca ważności albo wpisz stan początkowy ręcznie.</string>
   <string name="reserve_error_history_range">Sprawdź daty okresu i wyszukiwania. Koniec zakresu nie może wypadać przed jego początkiem.</string>
   <string name="reserve_history_bounds">Pokazujemy odczyty z wybranego zakresu, sprzed końca ważności i najpóźniej z bieżącej chwili.</string>
-  <string name="reserve_previous_title">Energia z poprzedniego okresu rozliczeniowego</string>
-  <string name="reserve_current_title">Energia z bieżącego okresu rozliczeniowego</string>
+  <string name="reserve_previous_title">Energia z poprzedniego okresu\nrozliczeniowego</string>
+  <string name="reserve_current_title">Energia z bieżącego okresu\nrozliczeniowego</string>
   <string name="reserve_current_remaining">Dostępne z bieżącego okresu</string>
   <string name="reserve_export_hourly">Oddano do sieci po bilansowaniu godzinowym</string>
   <string name="reserve_current_credited">Zgromadzono w magazynie - %1$d%%</string>
