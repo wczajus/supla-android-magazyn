@@ -5,8 +5,8 @@
   <string name="reserve_empty">Add the allowance from your bill</string>
   <string name="reserve_configure">Configure reserve</string>
   <string name="reserve_remaining">Remaining</string>
-  <string name="reserve_initial">Initial reserve balance</string>
-  <string name="reserve_used">Used from the reserve</string>
+  <string name="reserve_initial">Initial balance</string>
+  <string name="reserve_used">Used</string>
   <string name="reserve_imported">Imported from the grid</string>
   <string name="reserve_excess">Uncovered grid import</string>
   <string name="reserve_expired_amount">Unused at last reading</string>
@@ -70,9 +70,9 @@
   <string name="reserve_previous_title">Energy from the previous\nbilling period</string>
   <string name="reserve_current_title">Energy from the current\nbilling period</string>
   <string name="reserve_current_remaining">Available from the current period</string>
-  <string name="reserve_export_hourly">Exported to the grid after hourly balancing</string>
-  <string name="reserve_current_credited">Accumulated in the reserve - %1$d%%</string>
-  <string name="reserve_current_used">Used from the reserve</string>
+  <string name="reserve_export_hourly">After hourly balancing</string>
+  <string name="reserve_current_credited">In reserve</string>
+  <string name="reserve_current_used">Used</string>
   <string name="reserve_total_available">Total available energy</string>
   <string name="reserve_retained">Deduction %1$d%% — %2$d%% available</string>
   <string name="reserve_fifo_help">Energy accumulated in the previous billing period is used first, followed by energy from the current period.</string>
@@ -112,7 +112,7 @@
   <string name="reserve_raw_start">Data starts at: %1$s</string>
   <string name="reserve_raw_partial">Estimated balance for the available part of the period. Beginning or ending data is missing.</string>
   <string name="reserve_raw_start_estimate">The initial counter state was estimated from nearby readings.</string>
-  <string name="reserve_export_raw">Grid export (without balancing)</string>
+  <string name="reserve_export_raw">Without hourly balancing</string>
   <string name="reserve_available_percentage">Available energy - %1$s</string>
   <string name="reserve_data_until">Data through: %1$s</string>
   <string name="reserve_total_unavailable">Total energy will be available after a valid measurement.</string>
@@ -125,4 +125,5 @@
   <string name="reserve_form_period">Balance and billing period</string>
   <string name="reserve_form_calculation">Settlement method</string>
   <string name="reserve_form_baseline">Initial meter reading</string>
+  <string name="reserve_export_label">Grid export</string>
 </resources>
