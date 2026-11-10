@@ -116,11 +116,14 @@
   <string name="reserve_export_raw">Oddano do sieci (bez bilansowania)</string>
   <string name="reserve_available_percentage">Dostępna Energia - %1$s</string>
   <string name="reserve_data_until">Dane do: %1$s</string>
-  <string name="reserve_total_unavailable">Suma obu magazynów będzie dostępna po uzyskaniu poprawnego pomiaru.</string>
+  <string name="reserve_total_unavailable">Łączna energia będzie dostępna po uzyskaniu poprawnego pomiaru.</string>
   <string name="reserve_balancing_help_title">Jak działa bilansowanie godzinowe?</string>
   <string name="reserve_balancing_help_on">Włączone: dla każdej pełnej godziny odejmujemy energię oddaną od pobranej, sumując trzy fazy. Zostaje pobór albo oddanie. Przykład: pobrano 5 kWh, oddano 3 kWh — do rozliczenia zostaje 2 kWh poboru. Braki historii mogą powodować przybliżenie wyniku.</string>
   <string name="reserve_balancing_help_off">Wyłączone: używamy przyrostów liczników od początku okresu lub wybranego odczytu. Cały pobór pomniejsza magazyn; nie odejmujemy od niego energii oddanej w tej samej godzinie. Gdy drugi magazyn jest włączony, całe oddanie powiększa go po potrąceniu 20% albo 30%.</string>
   <string name="reserve_balancing_help_pools">W obu trybach pobór zużywa najpierw magazyn poprzedniego okresu, potem bieżącego. Wartość z FV jest już po potrąceniu — nie pomniejszamy jej ponownie. Przy wyłączonym drugim magazynie energia oddana nie tworzy nowej puli.</string>
   <string name="reserve_help_close">Rozumiem</string>
   <string name="reserve_choose_date">Wybierz datę: %1$s</string>
+  <string name="reserve_form_period">Stan i okres rozliczeniowy</string>
+  <string name="reserve_form_calculation">Sposób rozliczania</string>
+  <string name="reserve_form_baseline">Odczyt początkowy</string>
 </resources>
