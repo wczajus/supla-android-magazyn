@@ -331,8 +331,14 @@ private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalan
       )
       ReserveEnergyValue("${if (balance.approximate) "≈ " else ""}${formatEnergy(balance.currentRemainingRaw)} kWh")
       LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), drawStopIndicator = {})
-      ReserveMetric(if (reserve.hourlyEnabled) R.string.reserve_export_hourly else R.string.reserve_export_raw, balance.exportedRaw)
-      ReserveMetric(R.string.reserve_current_credited, balance.currentCreditedRaw, reserve.retainedPercent)
+      Text(
+        stringResource(if (reserve.hourlyEnabled) R.string.reserve_export_hourly else R.string.reserve_export_raw),
+        modifier = Modifier.fillMaxWidth(),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+      )
+      ReserveMetric(R.string.reserve_export_label, balance.exportedRaw)
+      ReserveMetric(R.string.reserve_current_credited, balance.currentCreditedRaw)
       ReserveMetric(R.string.reserve_current_used, balance.currentUsedRaw)
     } else {
       Text(stringResource(R.string.reserve_no_reading), style = MaterialTheme.typography.bodyMedium)
@@ -377,7 +383,7 @@ private fun ReserveMetric(label: Int, raw: Long, vararg arguments: Any) {
       style = MaterialTheme.typography.bodyMedium,
       color = MaterialTheme.colorScheme.onSurfaceVariant
     )
-    Text("${formatEnergy(raw)} kWh", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.End)
+    Text("${formatEnergy(raw)} kWh", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.End)
   }
 }
 
