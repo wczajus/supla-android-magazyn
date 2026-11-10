@@ -300,7 +300,7 @@ private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
         color = MaterialTheme.colorScheme.onSurfaceVariant
       )
       ReserveEnergyValue("${if (balance.approximate) "≈ " else ""}${formatEnergy(balance.remainingRaw)} kWh")
-      LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+      LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), drawStopIndicator = {})
     } else {
       Text(stringResource(statusRes), style = MaterialTheme.typography.bodyMedium)
     }
@@ -330,7 +330,7 @@ private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalan
         textAlign = TextAlign.Center
       )
       ReserveEnergyValue("${if (balance.approximate) "≈ " else ""}${formatEnergy(balance.currentRemainingRaw)} kWh")
-      LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+      LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), drawStopIndicator = {})
       ReserveMetric(if (reserve.hourlyEnabled) R.string.reserve_export_hourly else R.string.reserve_export_raw, balance.exportedRaw)
       ReserveMetric(R.string.reserve_current_credited, balance.currentCreditedRaw, reserve.retainedPercent)
       ReserveMetric(R.string.reserve_current_used, balance.currentUsedRaw)
