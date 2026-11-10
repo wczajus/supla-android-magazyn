@@ -4,13 +4,17 @@
 
 package org.supla.android.features.details.electricitymeterdetail.energyreserve
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,9 +23,13 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -109,7 +117,10 @@ private fun EnergyReserveContent(state: EnergyReserveState, actions: ReserveActi
       val reserve = state.context?.reserve
       if (reserve != null && state.balance != null) {
         ReserveOverview(reserve, state.balance)
-        if (reserve.currentReserveEnabled) ReserveCurrentOverview(reserve, state.balance)
+        if (reserve.currentReserveEnabled) {
+          ReserveCurrentOverview(reserve, state.balance)
+          ReserveTotalOverview(state.balance)
+        }
         if (reserve.hourlyEnabled) ReserveHistoryQuality(reserve, state.balance, !state.busy, actions.rebuild)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
           ReserveButton(onClick = actions.refresh, enabled = !state.busy, modifier = Modifier.weight(1f)) {
@@ -338,6 +349,31 @@ private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalan
 }
 
 @Composable
+private fun ReserveTotalOverview(balance: ReserveBalance) {
+  val available = balance.status in listOf(ReserveStatus.ACTIVE, ReserveStatus.EXHAUSTED, ReserveStatus.EXPIRED)
+  Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Column(
+      Modifier.fillMaxWidth().padding(24.dp),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+      Text(stringResource(R.string.reserve_total_available), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+      if (available) {
+        val total = ReserveEnergy.kwh(balance.remainingRaw).add(ReserveEnergy.kwh(balance.currentRemainingRaw))
+        val formattedTotal = NumberFormat.getNumberInstance().apply { maximumFractionDigits = 3 }.format(total)
+        Text(
+          "${if (balance.approximate) "≈ " else ""}$formattedTotal kWh",
+          style = MaterialTheme.typography.headlineMedium,
+          textAlign = TextAlign.Center
+        )
+      } else {
+        Text(stringResource(R.string.reserve_total_unavailable), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+      }
+    }
+  }
+}
+
+@Composable
 private fun ReserveMetric(label: Int, raw: Long, vararg arguments: Any) {
   Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
     Text(stringResource(label, *arguments), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
@@ -380,6 +416,7 @@ private fun ReserveBattery(fraction: Float, configured: Boolean = true) {
 @Composable
 private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
   var showHistory by remember { mutableStateOf(false) }
+  var showBalancingHelp by remember { mutableStateOf(false) }
   val draft = state.draft
   val enabled = !state.busy
   if (state.context?.reserve != null) Text(stringResource(R.string.reserve_edit_help), style = MaterialTheme.typography.bodySmall)
@@ -407,6 +444,13 @@ private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
       enabled = enabled
     )
     Text(stringResource(R.string.reserve_hourly_enable), Modifier.padding(start = 12.dp).weight(1f))
+    IconButton(onClick = { showBalancingHelp = true }) {
+      Icon(
+        painterResource(R.drawable.ic_info),
+        contentDescription = stringResource(R.string.reserve_balancing_help_title),
+        tint = MaterialTheme.colorScheme.primary
+      )
+    }
   }
   Row(verticalAlignment = Alignment.CenterVertically) {
     Switch(
@@ -492,6 +536,22 @@ private fun ReserveForm(state: EnergyReserveState, actions: ReserveActions) {
       showHistory = false
     }
   }
+  if (showBalancingHelp) {
+    AlertDialog(
+      onDismissRequest = { showBalancingHelp = false },
+      title = { Text(stringResource(R.string.reserve_balancing_help_title)) },
+      text = {
+        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+          Text(stringResource(R.string.reserve_balancing_help_on))
+          Text(stringResource(R.string.reserve_balancing_help_off))
+          Text(stringResource(R.string.reserve_balancing_help_pools))
+        }
+      },
+      confirmButton = {
+        ReserveTextButton(onClick = { showBalancingHelp = false }) { Text(stringResource(R.string.reserve_help_close)) }
+      }
+    )
+  }
 }
 
 @Composable
@@ -571,23 +631,36 @@ private fun ReserveHistoryDialog(
 @Composable
 private fun ReserveDateInput(label: Int, date: String, enabled: Boolean, onChanged: (String) -> Unit) {
   var showPicker by remember { mutableStateOf(false) }
-  OutlinedButton(
-    onClick = { showPicker = true },
+  val chooseDate = stringResource(R.string.reserve_choose_date, stringResource(label))
+  OutlinedTextField(
+    value = displayDate(date),
+    onValueChange = {},
+    label = { Text(stringResource(label)) },
+    readOnly = true,
+    singleLine = true,
     enabled = enabled,
-    modifier = Modifier.fillMaxWidth(),
-    colors = ButtonDefaults.outlinedButtonColors(
-      containerColor = MaterialTheme.colorScheme.surface,
-      contentColor = MaterialTheme.colorScheme.onSurface,
-      disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-      disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-    ),
-    border = BorderStroke(1.dp, if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
-  ) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-      Text(stringResource(label), style = MaterialTheme.typography.labelSmall)
-      Text(displayDate(date), style = MaterialTheme.typography.bodyLarge)
+    colors = reserveFieldColors(),
+    trailingIcon = {
+      IconButton(onClick = { showPicker = true }, enabled = enabled) {
+        Icon(Icons.Default.DateRange, contentDescription = chooseDate)
+      }
+    },
+    modifier = Modifier.fillMaxWidth().pointerInput(enabled) {
+      if (enabled) {
+        awaitEachGesture {
+          awaitFirstDown(pass = PointerEventPass.Initial)
+          if (waitForUpOrCancellation(pass = PointerEventPass.Initial) != null) showPicker = true
+        }
+      }
+    }.semantics {
+      if (enabled) {
+        onClick(label = chooseDate) {
+          showPicker = true
+          true
+        }
+      }
     }
-  }
+  )
   if (showPicker) {
     val pickerState =
       rememberDatePickerState(initialSelectedDateMillis = LocalDate.parse(date).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
