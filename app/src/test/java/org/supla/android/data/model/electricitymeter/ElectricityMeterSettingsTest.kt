@@ -80,4 +80,34 @@ class ElectricityMeterSettingsTest {
     // then
     assertThat(result).isNull()
   }
+
+  @Test
+  fun `existing meter settings show the reserve by default without resetting other choices`() {
+    val legacy = """
+      {
+        "currentMonthBalancing":"HOURLY",
+        "metricOnList":"VOLTAGE",
+        "metricOnListBalancing":"ARITHMETIC",
+        "metricOnListAggregation":"NO_AGGREGATION"
+      }
+    """.trimIndent()
+
+    val restored = ElectricityMeterSettings.from(legacy)!!
+
+    assertThat(restored.showReserve).isTrue()
+    assertThat(restored.metricOnList).isEqualTo(ElectricityMeterMeasurementType.VOLTAGE)
+    assertThat(restored.currentMonthBalancing).isEqualTo(ElectricityMeterBalanceType.HOURLY)
+  }
+
+  @Test
+  fun `hidden reserve persists through settings serialization and other changes`() {
+    val hidden = ElectricityMeterSettings.default().copy(showReserve = false)
+    val changed = ElectricityMeterSettings.from(Json.encodeToString(hidden))!!.copy(metricOnList = ElectricityMeterMeasurementType.VOLTAGE)
+
+    val restored = ElectricityMeterSettings.from(Json.encodeToString(changed))!!
+
+    assertThat(restored.showReserve).isFalse()
+    assertThat(restored.metricOnList).isEqualTo(ElectricityMeterMeasurementType.VOLTAGE)
+    assertThat(ElectricityMeterSettings.from(Json.encodeToString(restored.copy(showReserve = true)))!!.showReserve).isTrue()
+  }
 }

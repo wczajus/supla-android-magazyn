@@ -37,6 +37,7 @@ import org.supla.android.data.model.settings.ListValueAggregation
 import org.supla.android.data.model.settings.eletricitymeter.ElectricityMeterBalanceType
 import org.supla.android.data.model.settings.eletricitymeter.ElectricityMeterMeasurementType
 import org.supla.android.tools.SuplaPreview
+import org.supla.android.ui.views.settings.SettingCheckboxItem
 import org.supla.android.ui.views.settings.SettingRow
 import org.supla.android.ui.views.settings.SettingsHeader
 import org.supla.android.ui.views.settings.SettingsList
@@ -49,7 +50,8 @@ data class ElectricityMeterSettingsViewState(
   val metricOnList: SingleSelectionList<ElectricityMeterMeasurementType>? = null,
   val metricOnListBalancing: SingleSelectionList<ElectricityMeterBalanceType>? = null,
   val metricOnListAggregation: SingleSelectionList<ListValueAggregation>? = null,
-  val currentMonthBalancing: SingleSelectionList<ElectricityMeterBalanceType>? = null
+  val currentMonthBalancing: SingleSelectionList<ElectricityMeterBalanceType>? = null,
+  val showReserve: Boolean? = null
 ) : ViewState()
 
 interface ElectricityMeterSettingsScope {
@@ -57,6 +59,7 @@ interface ElectricityMeterSettingsScope {
   fun onMetricOnListBalancingChanged(type: ElectricityMeterBalanceType)
   fun onMetricOnListAggregationChanged(aggregation: ListValueAggregation)
   fun onCurrentMonthBalancingChanged(type: ElectricityMeterBalanceType)
+  fun onShowReserveChanged(show: Boolean)
 }
 
 @Composable
@@ -70,6 +73,13 @@ fun ElectricityMeterSettingsScope.View(
       .fillMaxWidth()
   ) {
     SettingsHeader(stringResource(id = R.string.details_settings_title, state.channelName(LocalContext.current)))
+    state.showReserve?.let { show ->
+      SettingCheckboxItem(
+        label = stringResource(R.string.reserve_show),
+        checked = show,
+        onCheckedChanged = { onShowReserveChanged(it) }
+      )
+    }
     state.currentMonthBalancing?.let { balancingOptions ->
       SettingsList {
         Selector(options = balancingOptions, onOptionSelected = { onCurrentMonthBalancingChanged(it) })
@@ -125,6 +135,7 @@ private val previewScope = object : ElectricityMeterSettingsScope {
   override fun onMetricOnListBalancingChanged(type: ElectricityMeterBalanceType) {}
   override fun onMetricOnListAggregationChanged(aggregation: ListValueAggregation) {}
   override fun onCurrentMonthBalancingChanged(type: ElectricityMeterBalanceType) {}
+  override fun onShowReserveChanged(show: Boolean) {}
 }
 
 @SuplaPreview
@@ -134,6 +145,7 @@ private fun Preview() {
     previewScope.View(
       state = ElectricityMeterSettingsViewState(
         channelName = LocalizedString.Constant("Electricity meter"),
+        showReserve = true,
         metricOnList = SingleSelectionList(
           selected = ElectricityMeterMeasurementType.FORWARD_ACTIVE_ENERGY,
           items = listOf(

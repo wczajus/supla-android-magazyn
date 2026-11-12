@@ -18,8 +18,13 @@ package org.supla.android.core.storage
  */
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.serialization.json.Json
 import org.supla.android.data.model.chart.ChartState
 import org.supla.android.data.model.chart.DefaultChartState
@@ -67,6 +72,16 @@ class UserStateHolder @Inject constructor(@ApplicationContext context: Context) 
       putString(getKey(ELECTRICITY_METER_SETTINGS, profileId, remoteId), Json.encodeToString(settings))
     }
   }
+
+  fun observeEnergyReserveVisibility(profileId: Long, remoteId: Int): Flow<Boolean> = callbackFlow {
+    val settingsKey = getKey(ELECTRICITY_METER_SETTINGS, profileId, remoteId)
+    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+      if (key == null || key == settingsKey) trySend(getElectricityMeterSettings(profileId, remoteId).showReserve)
+    }
+    preferences.registerOnSharedPreferenceChangeListener(listener)
+    trySend(getElectricityMeterSettings(profileId, remoteId).showReserve)
+    awaitClose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+  }.distinctUntilChanged()
 
   fun impulseCounterSettingExists(profileId: Long, remoteId: Int): Boolean =
     preferences.contains(getKey(IMPULSE_COUNTER_SETTINGS, profileId, remoteId))

@@ -29,6 +29,7 @@ import androidx.compose.material3.ResizeableNavigationBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -95,7 +96,13 @@ fun DetailScreen(
   viewModel: DetailViewModel = hiltViewModel()
 ) {
   val navigator = LocalNavigator.current
-  var page by remember(pages) { mutableStateOf(viewModel.firstPage(item.remoteId, pages)) }
+  val reserveVisible by remember(item, viewModel) { viewModel.observeReserveVisibility(item) }.collectAsState(
+    initial = remember(item, viewModel) { viewModel.initialReserveVisibility(item) }
+  )
+  val visiblePages = remember(pages, reserveVisible) { pages.filter { it != DetailPage.EM_RESERVE || reserveVisible } }
+  // Keep remembered indices tied to the original list, so hiding a tab never shifts History/Settings.
+  var page by remember(item, pages) { mutableStateOf(viewModel.firstPage(item.remoteId, pages)) }
+  val visiblePage = page.takeIf { it in visiblePages } ?: visiblePages.first()
 
   viewModel.LifeCycleObserver(
     onCreate = { viewModel.setup(item) }
@@ -105,9 +112,9 @@ fun DetailScreen(
   ManageTopBar(viewModel)
 
   if (LocalConfiguration.current.isPhoneLandscape) {
-    LandscapeScreen(item, page, pages) { page = viewModel.onPageChanged(it, pages) }
+    LandscapeScreen(item, visiblePage, visiblePages) { page = viewModel.onPageChanged(it, pages) }
   } else {
-    PortraitScreen(item, page, pages) { page = viewModel.onPageChanged(it, pages) }
+    PortraitScreen(item, visiblePage, visiblePages) { page = viewModel.onPageChanged(it, pages) }
   }
 }
 

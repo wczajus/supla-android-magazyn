@@ -368,6 +368,8 @@ private fun ReserveTotalOverview(reserve: EnergyReserve, balance: ReserveBalance
           if (reserve.hourlyEnabled) R.string.reserve_hourly_until else R.string.reserve_data_until,
           displayTime(it, reserve.zoneId)
         ),
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = TextAlign.Start,
         style = MaterialTheme.typography.bodySmall
       )
     }

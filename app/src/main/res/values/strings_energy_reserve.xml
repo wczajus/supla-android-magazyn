@@ -41,7 +41,7 @@
   <string name="reserve_baseline_help">Enter the cumulative grid import reading at the start of this period, summed across all three phases. This is a meter reading, separate from the allowance on your bill.</string>
   <string name="reserve_history_help">Search readings near the requested midnight and explicitly confirm one. You can set any search date range. The actual date, time and counter value are shown before saving.</string>
   <string name="reserve_edit_help">Saving replaces the current configuration and recalculates the entire period from the new initial counter.</string>
-  <string name="reserve_counter_help">Allowances are settlement estimates stored on this phone. Reconcile the next invoice by editing the period and invoice allowance; allowances are not rolled over automatically.</string>
+  <string name="reserve_counter_help">Data and configuration remain only on this device and are not sent to the SUPLA server. After receiving a new settlement invoice from your operator, update the data.</string>
   <string name="reserve_error_channel">This meter is no longer available in the active account.</string>
   <string name="reserve_error_profile">Account changed. Reopen the meter to load the correct reserve.</string>
   <string name="reserve_error_storage">Cannot read or save the local configuration. Retry, or remove this reserve and configure it again.</string>
@@ -126,4 +126,5 @@
   <string name="reserve_form_calculation">Settlement method</string>
   <string name="reserve_form_baseline">Initial meter reading</string>
   <string name="reserve_export_label">Grid export</string>
+  <string name="reserve_show">Show energy reserve</string>
 </resources>

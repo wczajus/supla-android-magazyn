@@ -41,7 +41,7 @@
   <string name="reserve_baseline_help">Wpisz narastający odczyt energii pobranej z sieci na początek okresu, łącznie z trzech faz. To stan licznika, osobny od wartości magazynu na fakturze.</string>
   <string name="reserve_history_help">Wyszukaj odczyty blisko wybranej północy i zatwierdź jeden z nich. Możesz ustawić dowolny zakres dat wyszukiwania. Przed zapisem pokażemy rzeczywistą datę, godzinę i stan licznika.</string>
   <string name="reserve_edit_help">Zapis zastąpi obecną konfigurację i przeliczy cały okres od nowego stanu początkowego.</string>
-  <string name="reserve_counter_help">Pule są pomocniczym szacunkiem rozliczenia. Dane i konfiguracja pozostają na tym telefonie. Nową fakturę uzgadniasz przez edycję okresu i puli z faktury; aplikacja nie przenosi pul automatycznie.</string>
+  <string name="reserve_counter_help">Dane i konfiguracja pozostają tylko na tym urządzeniu, nie są wysyłane na serwer Supli. Po otrzymaniu nowej faktury rozliczeniowej od operatora, zaktualizuj dane.</string>
   <string name="reserve_error_channel">Ten licznik nie jest już dostępny na aktywnym koncie.</string>
   <string name="reserve_error_profile">Zmieniono konto. Otwórz ponownie licznik, aby wczytać właściwy magazyn.</string>
   <string name="reserve_error_storage">Nie można odczytać lub zapisać konfiguracji. Spróbuj ponownie albo usuń ten magazyn i skonfiguruj go od nowa.</string>
@@ -126,4 +126,5 @@
   <string name="reserve_form_calculation">Sposób rozliczania</string>
   <string name="reserve_form_baseline">Odczyt początkowy</string>
   <string name="reserve_export_label">Oddano do sieci</string>
+  <string name="reserve_show">Pokaż magazyn</string>
 </resources>

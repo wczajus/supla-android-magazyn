@@ -19,11 +19,14 @@ package org.supla.android.features.details.detailbase.base
 
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.rx3.awaitFirst
 import org.supla.android.core.networking.suplaclient.SuplaClientMessageHandlerWrapper
 import org.supla.android.core.shared.shareable
 import org.supla.android.core.storage.RuntimeStateHolder
+import org.supla.android.core.storage.UserStateHolder
 import org.supla.android.core.ui.EventBasedViewModel
 import org.supla.android.core.ui.ViewEvent
 import org.supla.android.data.model.general.ChannelDataBase
@@ -45,6 +48,7 @@ class DetailViewModel @Inject constructor(
   private val runtimeStateHolder: RuntimeStateHolder,
   private val getCaptionUseCase: GetCaptionUseCase,
   private val channelRepository: ChannelRepository,
+  private val userStateHolder: UserStateHolder,
   private val threading: SuplaThreading
 ) : EventBasedViewModel<DetailViewEvent>(manageScreenTitle = true) {
 
@@ -71,6 +75,12 @@ class DetailViewModel @Inject constructor(
       pages.first()
     }
   }
+
+  fun initialReserveVisibility(item: ItemBundle): Boolean =
+    item.supportsEnergyReserve && userStateHolder.getElectricityMeterSettings(item.profileId, item.remoteId).showReserve
+
+  fun observeReserveVisibility(item: ItemBundle): Flow<Boolean> =
+    if (item.supportsEnergyReserve) userStateHolder.observeEnergyReserveVisibility(item.profileId, item.remoteId) else flowOf(false)
 
   fun onPageChanged(newPage: DetailPage, pages: List<DetailPage>): DetailPage {
     runtimeStateHolder.setDetailOpenedPage(item.remoteId, pages.indexOf(newPage))
@@ -110,6 +120,9 @@ class DetailViewModel @Inject constructor(
 sealed interface DetailViewEvent : ViewEvent {
   data object Close : DetailViewEvent
 }
+
+private val ItemBundle.supportsEnergyReserve: Boolean
+  get() = itemType == ItemType.CHANNEL && function == SuplaFunction.ELECTRICITY_METER
 
 private val SuplaFunction.isHvac: Boolean
   get() = when (this) {
