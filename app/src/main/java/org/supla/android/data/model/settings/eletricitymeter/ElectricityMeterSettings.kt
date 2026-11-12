@@ -34,7 +34,8 @@ data class ElectricityMeterSettings(
   val currentMonthBalancing: ElectricityMeterBalanceType,
   val metricOnList: ElectricityMeterMeasurementType,
   val metricOnListBalancing: ElectricityMeterBalanceType,
-  val metricOnListAggregation: ListValueAggregation
+  val metricOnListAggregation: ListValueAggregation,
+  val showReserve: Boolean = true
 ) {
 
   val usingAggregatedValue: Boolean

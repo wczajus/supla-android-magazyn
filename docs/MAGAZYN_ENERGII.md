@@ -62,3 +62,9 @@ Formularz ma karty „Stan i okres rozliczeniowy”, „Sposób rozliczania” o
 Opis G3 („Monitoruj pulę energii…”) został usunięty. Nagłówki obu magazynów mają jawne złamanie wiersza przed słowem „rozliczeniowego”, z zachowaniem zawijania przy większej systemowej skali czcionki.
 
 Oba paski dostępnej energii mają wyłączony znacznik końca skali Material 3 (`drawStopIndicator = {}`), dzięki czemu przy 100% nie pozostaje osobna kropka.
+
+## Widoczność magazynu
+
+W ustawieniach samodzielnego licznika energii opcja „Pokaż magazyn” jest domyślnie włączona, również po odczytaniu konfiguracji starszej wersji. Jest zapisywana lokalnie w ustawieniach danego profilu i kanału. Jej wyłączenie usuwa zakładkę Magazyn z dolnego paska oraz bocznej nawigacji i uniemożliwia wyświetlenie ukrytej strony. Zmiana działa od razu; pozostajemy na wybranej dostępnej zakładce (np. Ustawieniach), a zapamiętana ukryta strona przechodzi na Ogólne. Indeksy zapamiętanych zakładek odnoszą się do pełnej listy, dzięki czemu Historia i Ustawienia nie zamieniają się po zmianie widoczności.
+
+Przełącznik nie zapisuje, nie usuwa ani nie przelicza danych `EnergyReserveStore`. Ponowne włączenie udostępnia dotychczasową konfigurację i odczyty magazynu. Stopka informuje o lokalnym przechowywaniu i aktualizacji po nowej fakturze. W „Łącznie do wykorzystania” czas rozliczenia jest wyrównany do początku wiersza, pod etykietą poboru.

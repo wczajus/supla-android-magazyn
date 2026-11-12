@@ -37,6 +37,7 @@ import org.supla.android.extensions.subscribeBy
 import org.supla.android.tools.SuplaThreading
 import org.supla.android.usecases.channel.ReadChannelByRemoteIdUseCase
 import org.supla.android.usecases.list.RefreshElectricityMeterAggregatedValueUseCase
+import org.supla.core.shared.data.model.general.SuplaFunction
 import org.supla.core.shared.extensions.forTrue
 import org.supla.core.shared.extensions.guardLet
 import org.supla.core.shared.extensions.ifTrue
@@ -161,12 +162,23 @@ class ElectricityMeterSettingsViewModel @Inject constructor(
     }
   }
 
+  override fun onShowReserveChanged(show: Boolean) {
+    if (currentState().showReserve == null) return
+    val settings = userStateHolder.getElectricityMeterSettings(profileId, remoteId)
+    userStateHolder.setElectricityMeterSettings(settings.copy(showReserve = show), profileId, remoteId)
+    updateState { it.copy(showReserve = show) }
+  }
+
   private fun handleChannel(channelData: ChannelDataEntity) {
     profileId = channelData.profileId
     remoteId = channelData.remoteId
 
+    val settings = userStateHolder.getElectricityMeterSettings(profileId, remoteId)
+    updateState {
+      it.copy(showReserve = if (channelData.function == SuplaFunction.ELECTRICITY_METER) settings.showReserve else null)
+    }
+
     val (measuredValues) = guardLet(channelData.Electricity.measuredTypes) { return }
-    val settings = userStateHolder.getElectricityMeterSettings(channelData.profileId, channelData.remoteId)
 
     val hasForwardEnergy = channelData.Electricity.measuredTypes.contains(SuplaElectricityMeasurementType.FORWARD_ACTIVE_ENERGY)
     val hasReverseEnergy = channelData.Electricity.measuredTypes.contains(SuplaElectricityMeasurementType.REVERSE_ACTIVE_ENERGY)
