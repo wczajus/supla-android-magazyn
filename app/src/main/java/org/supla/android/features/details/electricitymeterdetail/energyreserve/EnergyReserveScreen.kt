@@ -94,8 +94,12 @@ private data class ReserveActions(
 @Composable
 private fun EnergyReserveContent(state: EnergyReserveState, actions: ReserveActions = ReserveActions()) {
   var confirmDelete by remember { mutableStateOf(false) }
+  val scrollState = rememberScrollState()
+  LaunchedEffect(state.editing) {
+    if (state.editing) scrollState.scrollTo(0)
+  }
   Column(
-    Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(Distance.default),
+    Modifier.fillMaxSize().imePadding().verticalScroll(scrollState).padding(Distance.default),
     verticalArrangement = Arrangement.spacedBy(Distance.small)
   ) {
     Text(stringResource(R.string.reserve_title), style = MaterialTheme.typography.headlineSmall)
@@ -114,7 +118,12 @@ private fun EnergyReserveContent(state: EnergyReserveState, actions: ReserveActi
     if (state.editing) {
       ReserveForm(state, actions)
       if (state.context?.reserve != null || state.context == null) {
-        ReserveTextButton(onClick = { confirmDelete = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+        ReserveTextButton(
+          onClick = { confirmDelete = true },
+          enabled = !state.busy,
+          modifier = Modifier.fillMaxWidth(),
+          destructive = true
+        ) {
           Text(stringResource(R.string.reserve_delete))
         }
       }
@@ -158,7 +167,7 @@ private fun EnergyReserveContent(state: EnergyReserveState, actions: ReserveActi
         ReserveTextButton(onClick = {
           confirmDelete = false
           actions.delete()
-        }) { Text(stringResource(R.string.reserve_delete)) }
+        }, destructive = true) { Text(stringResource(R.string.reserve_delete)) }
       },
       dismissButton = { ReserveTextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.reserve_cancel)) } }
     )
@@ -753,6 +762,7 @@ private fun ReserveTextButton(
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
   enabled: Boolean = true,
+  destructive: Boolean = false,
   content: @Composable RowScope.() -> Unit
 ) {
   TextButton(
@@ -760,7 +770,7 @@ private fun ReserveTextButton(
     modifier = modifier,
     enabled = enabled,
     colors = ButtonDefaults.textButtonColors(
-      contentColor = MaterialTheme.colorScheme.primary,
+      contentColor = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
       disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
     ),
     content = content
