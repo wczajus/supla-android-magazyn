@@ -5,7 +5,7 @@
   <string name="reserve_empty">Add the allowance from your bill</string>
   <string name="reserve_configure">Configure reserve</string>
   <string name="reserve_remaining">Remaining</string>
-  <string name="reserve_initial">Initial balance</string>
+  <string name="reserve_initial">In reserve</string>
   <string name="reserve_used">Used</string>
   <string name="reserve_imported">Imported from the grid</string>
   <string name="reserve_excess">Uncovered grid import</string>
@@ -71,9 +71,10 @@
   <string name="reserve_current_title">Energy from the current\nbilling period</string>
   <string name="reserve_current_remaining">Available from the current period</string>
   <string name="reserve_export_hourly">After hourly balancing</string>
-  <string name="reserve_current_credited">In reserve</string>
+  <string name="reserve_current_credited">In reserve (x %1$s)</string>
   <string name="reserve_current_used">Used</string>
   <string name="reserve_total_available">Total available energy</string>
+  <string name="reserve_total_credited">Total in reserve</string>
   <string name="reserve_retained">Deduction %1$d%% — %2$d%% available</string>
   <string name="reserve_fifo_help">Energy accumulated in the previous billing period is used first, followed by energy from the current period.</string>
   <string name="reserve_hourly_source">Hourly balancing</string>
