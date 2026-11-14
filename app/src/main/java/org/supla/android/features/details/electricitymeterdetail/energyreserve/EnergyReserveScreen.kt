@@ -97,7 +97,7 @@ private fun EnergyReserveContent(state: EnergyReserveState, actions: ReserveActi
   var confirmDelete by remember { mutableStateOf(false) }
   val scrollState = rememberScrollState()
   LaunchedEffect(state.editing) {
-    if (state.editing) scrollState.scrollTo(0)
+    scrollState.scrollTo(0)
   }
   Column(
     Modifier.fillMaxSize().imePadding().verticalScroll(scrollState).padding(Distance.default),
