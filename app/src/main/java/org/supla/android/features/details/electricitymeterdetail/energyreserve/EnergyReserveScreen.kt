@@ -359,13 +359,21 @@ private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalan
 @Composable
 private fun ReserveTotalOverview(reserve: EnergyReserve, balance: ReserveBalance) {
   val available = balance.status in listOf(ReserveStatus.ACTIVE, ReserveStatus.EXHAUSTED, ReserveStatus.EXPIRED)
+  val fraction = if (available) ReserveCalculator.totalAvailableFraction(reserve, balance) else 0f
   ReserveCard {
     ReserveCardTitle(R.string.reserve_total_available)
+    ReserveBattery(fraction)
     if (available) {
+      Text(
+        stringResource(R.string.reserve_available_percentage, formatPercentage(fraction)),
+        style = MaterialTheme.typography.bodyMedium,
+        textAlign = TextAlign.Center
+      )
       val currentRemaining = if (reserve.currentReserveEnabled) balance.currentRemainingRaw else 0L
       val total = ReserveEnergy.kwh(balance.remainingRaw).add(ReserveEnergy.kwh(currentRemaining))
       val formattedTotal = formatNumber(total)
       ReserveEnergyValue("${if (balance.approximate) "≈ " else ""}$formattedTotal kWh")
+      LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), drawStopIndicator = {})
     } else {
       Text(stringResource(R.string.reserve_total_unavailable), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
     }

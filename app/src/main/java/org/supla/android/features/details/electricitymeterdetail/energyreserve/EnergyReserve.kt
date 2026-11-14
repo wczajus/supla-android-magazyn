@@ -95,6 +95,13 @@ data class ReserveBalance(
 )
 
 object ReserveCalculator {
+  fun totalAvailableFraction(reserve: EnergyReserve, balance: ReserveBalance): Float {
+    val currentRemaining = if (reserve.currentReserveEnabled) balance.currentRemainingRaw.toDouble() else 0.0
+    val currentCredited = if (reserve.currentReserveEnabled) balance.currentCreditedRaw.toDouble() else 0.0
+    val total = reserve.initialRaw.toDouble() + currentCredited
+    return ((balance.remainingRaw.toDouble() + currentRemaining) / total).toFloat().coerceIn(0f, 1f)
+  }
+
   fun calculate(reserve: EnergyReserve, now: Long): ReserveBalance {
     if (reserve.hourlyEnabled) return calculateHourly(reserve, now)
     if (reserve.currentReserveEnabled) return calculateUnbalanced(reserve, now)

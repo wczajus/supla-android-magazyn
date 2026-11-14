@@ -35,6 +35,58 @@ class EnergyReserveTest {
     assertEquals(150 * 100_000L, balance.usedRaw)
   }
 
+  @Test fun `total percentage uses invoice amount and already credited current energy`() {
+    for (retainedPercent in listOf(70, 80)) {
+      val value = reserve().copy(currentReserveEnabled = true, retainedPercent = retainedPercent)
+      val balance = ReserveBalance(
+        status = ReserveStatus.ACTIVE,
+        remainingRaw = 50 * 100_000L,
+        currentCreditedRaw = 100 * 100_000L,
+        currentRemainingRaw = 100 * 100_000L
+      )
+      assertEquals(0.5f, ReserveCalculator.totalAvailableFraction(value, balance), 0.000001f)
+      assertEquals(
+        0.1f,
+        ReserveCalculator.totalAvailableFraction(value, balance.copy(remainingRaw = 0, currentRemainingRaw = 30 * 100_000L)),
+        0.000001f
+      )
+      assertEquals(
+        0.6f,
+        ReserveCalculator.totalAvailableFraction(
+          value,
+          balance.copy(currentCreditedRaw = 175 * 100_000L, currentRemainingRaw = 175 * 100_000L)
+        ),
+        0.000001f
+      )
+    }
+  }
+
+  @Test fun `total percentage excludes disabled current pool`() {
+    val balance = ReserveBalance(
+      status = ReserveStatus.ACTIVE,
+      remainingRaw = 50 * 100_000L,
+      currentCreditedRaw = 100 * 100_000L,
+      currentRemainingRaw = 100 * 100_000L
+    )
+    assertEquals(0.25f, ReserveCalculator.totalAvailableFraction(reserve(), balance), 0.000001f)
+  }
+
+  @Test fun `total percentage handles full and exhausted pools without overflowing`() {
+    val value = reserve().copy(initialRaw = Long.MAX_VALUE, currentReserveEnabled = true)
+    val full = ReserveBalance(
+      status = ReserveStatus.ACTIVE,
+      remainingRaw = Long.MAX_VALUE,
+      currentCreditedRaw = Long.MAX_VALUE,
+      currentRemainingRaw = Long.MAX_VALUE
+    )
+    assertEquals(1f, ReserveCalculator.totalAvailableFraction(value, full), 0f)
+    assertEquals(
+      0f,
+      ReserveCalculator.totalAvailableFraction(value, full.copy(remainingRaw = 0, currentRemainingRaw = 0)),
+      0f
+    )
+  }
+
   @Test fun `exhausted pool stays at zero and reports excess`() {
     val balance = ReserveCalculator.calculate(reserve(10_250), now)
     assertEquals(ReserveStatus.EXHAUSTED, balance.status)
