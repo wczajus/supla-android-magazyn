@@ -53,7 +53,7 @@ Karta poprzedniego magazynu zawiera początkowy stan pod etykietą „W magazyni
 
 „Usuń magazyn” jest dostępne w edycji, z dotychczasowym potwierdzeniem. Przy błędzie odczytu konfiguracji przycisk Edytuj prowadzi do tego samego miejsca, aby nadal można było usunąć uszkodzony zapis.
 
-Każde wejście w edycję przewija formularz do początku. Zmiany pól i otwieranie dialogów w trakcie edycji nie resetują przewinięcia. Akcja „Usuń magazyn” oraz jej potwierdzenie używają czerwonego koloru `error` z motywu aplikacji; niedostępna akcja pozostaje szara.
+Każde wejście w edycję przewija formularz do początku. Powrót do podsumowania po udanym zapisie lub anulowaniu również przewija ekran do góry. Efekt reaguje wyłącznie na zmianę trybu: zmiany pól, błędy walidacji, nieudany zapis, odświeżenia i otwieranie dialogów w trakcie edycji nie resetują przewinięcia. Akcja „Usuń magazyn” oraz jej potwierdzenie używają czerwonego koloru `error` z motywu aplikacji; niedostępna akcja pozostaje szara.
 
 Energia i daty w formularzu mają wspólny styl `OutlinedTextField`; datę wybiera się przez dotknięcie pola lub ikony kalendarza. Ikona informacji obok „Bilansowanie godzinowe” otwiera przewijane wyjaśnienie obu trybów, przykładu godzinowego, kolejności wykorzystania magazynów i współczynnika.
 
