@@ -45,6 +45,7 @@ import org.supla.android.core.ui.theme.SuplaTheme
 import org.supla.android.extensions.suplaCard
 import org.supla.android.features.details.detailbase.base.ItemBundle
 import org.supla.android.main.ViewModelHost
+import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.NumberFormat
 import java.time.Instant
@@ -281,6 +282,15 @@ private fun ReserveEnergyValue(text: String) {
 }
 
 @Composable
+private fun ReserveRemainingLabel() {
+  Text(
+    stringResource(R.string.reserve_remaining),
+    style = MaterialTheme.typography.bodyMedium,
+    color = MaterialTheme.colorScheme.onSurfaceVariant
+  )
+}
+
+@Composable
 private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
   val available = balance.status in listOf(ReserveStatus.ACTIVE, ReserveStatus.EXHAUSTED, ReserveStatus.EXPIRED)
   val fraction = if (available) (balance.remainingRaw.toDouble() / reserve.initialRaw).toFloat().coerceIn(0f, 1f) else 0f
@@ -303,11 +313,7 @@ private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
         textAlign = TextAlign.Center
       )
       if (balance.status != ReserveStatus.ACTIVE) Text(stringResource(statusRes), style = MaterialTheme.typography.bodyMedium)
-      Text(
-        stringResource(R.string.reserve_remaining),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-      )
+      ReserveRemainingLabel()
       ReserveEnergyValue("${if (balance.approximate) "≈ " else ""}${formatEnergy(balance.remainingRaw)} kWh")
       LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), drawStopIndicator = {})
     } else {
@@ -338,6 +344,7 @@ private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalan
         style = MaterialTheme.typography.bodyMedium,
         textAlign = TextAlign.Center
       )
+      ReserveRemainingLabel()
       ReserveEnergyValue("${if (balance.approximate) "≈ " else ""}${formatEnergy(balance.currentRemainingRaw)} kWh")
       LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), drawStopIndicator = {})
       Text(
@@ -347,7 +354,7 @@ private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalan
         color = MaterialTheme.colorScheme.onSurfaceVariant
       )
       ReserveMetric(R.string.reserve_export_label, balance.exportedRaw)
-      ReserveMetric(R.string.reserve_current_credited, balance.currentCreditedRaw)
+      ReserveMetric(R.string.reserve_current_credited, balance.currentCreditedRaw, formatNumber(reserve.retainedPercent / 100.0))
       ReserveMetric(R.string.reserve_current_used, balance.currentUsedRaw)
     } else {
       Text(stringResource(R.string.reserve_no_reading), style = MaterialTheme.typography.bodyMedium)
@@ -369,11 +376,16 @@ private fun ReserveTotalOverview(reserve: EnergyReserve, balance: ReserveBalance
         style = MaterialTheme.typography.bodyMedium,
         textAlign = TextAlign.Center
       )
+      ReserveRemainingLabel()
       val currentRemaining = if (reserve.currentReserveEnabled) balance.currentRemainingRaw else 0L
       val total = ReserveEnergy.kwh(balance.remainingRaw).add(ReserveEnergy.kwh(currentRemaining))
       val formattedTotal = formatNumber(total)
       ReserveEnergyValue("${if (balance.approximate) "≈ " else ""}$formattedTotal kWh")
       LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), drawStopIndicator = {})
+      val currentCredited = if (reserve.currentReserveEnabled) balance.currentCreditedRaw else 0L
+      val currentUsed = if (reserve.currentReserveEnabled) balance.currentUsedRaw else 0L
+      ReserveMetric(R.string.reserve_total_credited, ReserveEnergy.kwh(reserve.initialRaw).add(ReserveEnergy.kwh(currentCredited)))
+      ReserveMetric(R.string.reserve_used, ReserveEnergy.kwh(balance.usedRaw).add(ReserveEnergy.kwh(currentUsed)))
     } else {
       Text(stringResource(R.string.reserve_total_unavailable), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
     }
@@ -395,6 +407,11 @@ private fun ReserveTotalOverview(reserve: EnergyReserve, balance: ReserveBalance
 
 @Composable
 private fun ReserveMetric(label: Int, raw: Long, vararg arguments: Any) {
+  ReserveMetric(label, ReserveEnergy.kwh(raw), *arguments)
+}
+
+@Composable
+private fun ReserveMetric(label: Int, energy: BigDecimal, vararg arguments: Any) {
   Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
     Text(
       stringResource(label, *arguments),
@@ -402,7 +419,7 @@ private fun ReserveMetric(label: Int, raw: Long, vararg arguments: Any) {
       style = MaterialTheme.typography.bodyMedium,
       color = MaterialTheme.colorScheme.onSurfaceVariant
     )
-    Text("${formatEnergy(raw)} kWh", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.End)
+    Text("${formatNumber(energy)} kWh", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.End)
   }
 }
 
