@@ -12,6 +12,8 @@
   <string name="reserve_expired_amount">Niewykorzystane przy ostatnim odczycie</string>
   <string name="reserve_active">Pula dostępna</string>
   <string name="reserve_exhausted">Magazyn wykorzystany</string>
+  <string name="reserve_not_accumulated">Nie zgromadzono jeszcze energii</string>
+  <string name="reserve_period_ended">Okres rozliczeniowy zakończony</string>
   <string name="reserve_expired">Termin wykorzystania minął</string>
   <string name="reserve_not_started">Okres jeszcze się nie rozpoczął</string>
   <string name="reserve_no_reading">Oczekiwanie na pomiar</string>
