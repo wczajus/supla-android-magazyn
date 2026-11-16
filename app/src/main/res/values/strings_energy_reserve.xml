@@ -12,6 +12,8 @@
   <string name="reserve_expired_amount">Unused at last reading</string>
   <string name="reserve_active">Available allowance</string>
   <string name="reserve_exhausted">Allowance used up</string>
+  <string name="reserve_not_accumulated">No energy accumulated yet</string>
+  <string name="reserve_period_ended">Billing period ended</string>
   <string name="reserve_expired">Validity period ended</string>
   <string name="reserve_not_started">Period has not started</string>
   <string name="reserve_no_reading">Waiting for measurement</string>

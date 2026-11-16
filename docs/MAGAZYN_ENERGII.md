@@ -65,6 +65,22 @@ Opis G3 („Monitoruj pulę energii…”) został usunięty. Nagłówki obu mag
 
 Wszystkie trzy paski dostępnej energii mają wyłączony znacznik końca skali Material 3 (`drawStopIndicator = {}`), dzięki czemu przy 100% nie pozostaje osobna kropka.
 
+## Komunikaty i różnice między magazynami
+
+Wszystkie trzy karty wyświetlają komunikaty w tym samym miejscu pod procentem dostępnej energii. „Magazyn wykorzystany” wynika z dokładnego salda danej karty, przed zaokrągleniem: poprzedni magazyn ma pozostałe saldo równe zero, bieżący ma naliczoną energię większą od zera i wykorzystaną w całości, suma nie ma energii w żadnym z włączonych magazynów. Wyczerpanie poprzedniego magazynu nie oznacza wyczerpania bieżącego ani sumy. Dopływ nowej energii usuwa komunikat o wyczerpaniu w bieżącym magazynie i sumie. Przy zerowej naliczonej energii bieżąca karta pokazuje „Nie zgromadzono jeszcze energii”.
+
+Przed początkiem okresu, przy braku pomiaru, spadku licznika albo niewłaściwym odczycie wszystkie karty pokazują tę samą konkretną przyczynę, bez udawania salda zero. Po zakończeniu okresu poprzedni magazyn pokazuje „Termin wykorzystania minął”. Bieżąca karta i suma dwóch magazynów pokazują „Okres rozliczeniowy zakończony”, zachowując wyliczone saldo bieżącej energii. Te komunikaty nie zmieniają zasad rozliczenia ani zapisanych kwot.
+
+| Zachowanie | Poprzedni okres | Bieżący okres | Łącznie |
+| --- | --- | --- | --- |
+| Podstawa magazynu / 100% | Ręczny stan z faktury, już po potrąceniu | Oddanie po wybranym bilansowaniu × 0,8 lub 0,7; wartość narasta | Suma obu podstaw dla włączonych magazynów |
+| Wykorzystanie | Pobór wykorzystuje tę pulę najpierw | Pobór ponad początkową pulę z faktury wykorzystuje tę pulę | Suma wykorzystania obu pul |
+| Termin | Niewykorzystana reszta wygasa w ustawionej dacie | Nie wygasa razem z poprzednią pulą | Po terminie zawiera tylko pozostałą energię bieżącą |
+| Szczegóły | Stan początkowy i wykorzystanie | Oddanie, naliczenie po potrąceniu, wykorzystanie, informacja o kolejności poboru | Sumy, pobór z sieci, czas rozliczenia |
+| Widoczność | Podstawowa karta | Opcjonalna karta sterowana ustawieniem | Zawsze przy skonfigurowanym magazynie |
+
+Wspólne są metoda bilansowania, daty skonfigurowanego okresu, odczyty źródłowe, jakość danych, format liczb, rozmiary baterii i progi kolorów (powyżej 20% zielony, do 20% pomarańczowy, zero bez wypełnienia). Obliczenia obu pul są ograniczone do końca skonfigurowanego okresu. Aplikacja nie zakłada automatycznie kolejnego okresu ani nie prowadzi osobnych rocznych terminów dla kolejnych partii energii bieżącej; nową fakturę uzgadnia się przez edycję konfiguracji. To istniejące ograniczenie modelu.
+
 ## Widoczność magazynu
 
 W ustawieniach samodzielnego licznika energii opcja „Pokaż magazyn” jest domyślnie włączona, również po odczytaniu konfiguracji starszej wersji. Jest zapisywana lokalnie w ustawieniach danego profilu i kanału. Jej wyłączenie usuwa zakładkę Magazyn z dolnego paska oraz bocznej nawigacji i uniemożliwia wyświetlenie ukrytej strony. Zmiana działa od razu; pozostajemy na wybranej dostępnej zakładce (np. Ustawieniach), a zapamiętana ukryta strona przechodzi na Ogólne. Indeksy zapamiętanych zakładek odnoszą się do pełnej listy, dzięki czemu Historia i Ustawienia nie zamieniają się po zmianie widoczności.

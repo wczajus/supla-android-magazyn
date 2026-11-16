@@ -291,18 +291,17 @@ private fun ReserveRemainingLabel() {
 }
 
 @Composable
-private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
-  val available = balance.status in listOf(ReserveStatus.ACTIVE, ReserveStatus.EXHAUSTED, ReserveStatus.EXPIRED)
-  val fraction = if (available) (balance.remainingRaw.toDouble() / reserve.initialRaw).toFloat().coerceIn(0f, 1f) else 0f
-  val statusRes = when (balance.status) {
-    ReserveStatus.ACTIVE -> R.string.reserve_active
-    ReserveStatus.EXHAUSTED -> R.string.reserve_exhausted
-    ReserveStatus.EXPIRED -> R.string.reserve_expired
-    ReserveStatus.NOT_STARTED -> R.string.reserve_not_started
-    ReserveStatus.NO_READING -> R.string.reserve_no_reading
-    ReserveStatus.COUNTER_RESET -> R.string.reserve_reset
-    ReserveStatus.INVALID_READING -> R.string.reserve_invalid
+private fun ReserveStatusMessage(status: ReserveCardStatus) {
+  status.message?.let {
+    Text(stringResource(it), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
   }
+}
+
+@Composable
+private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
+  val status = ReserveCardStatuses.previous(balance)
+  val available = status.hasBalance
+  val fraction = if (available) (balance.remainingRaw.toDouble() / reserve.initialRaw).toFloat().coerceIn(0f, 1f) else 0f
   ReserveCard {
     ReserveCardTitle(R.string.reserve_previous_title)
     ReserveBattery(fraction)
@@ -312,12 +311,12 @@ private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
         style = MaterialTheme.typography.bodyMedium,
         textAlign = TextAlign.Center
       )
-      if (balance.status != ReserveStatus.ACTIVE) Text(stringResource(statusRes), style = MaterialTheme.typography.bodyMedium)
+      ReserveStatusMessage(status)
       ReserveRemainingLabel()
       ReserveEnergyValue("${if (balance.approximate) "≈ " else ""}${formatEnergy(balance.remainingRaw)} kWh")
       LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), drawStopIndicator = {})
     } else {
-      Text(stringResource(statusRes), style = MaterialTheme.typography.bodyMedium)
+      ReserveStatusMessage(status)
     }
     Text(stringResource(R.string.reserve_valid_until, displayDate(reserve.validUntil)), style = MaterialTheme.typography.bodyMedium)
     ReserveMetric(R.string.reserve_initial, reserve.initialRaw)
@@ -329,8 +328,9 @@ private fun ReserveOverview(reserve: EnergyReserve, balance: ReserveBalance) {
 
 @Composable
 private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalance) {
-  val available = balance.status in listOf(ReserveStatus.ACTIVE, ReserveStatus.EXHAUSTED, ReserveStatus.EXPIRED)
-  val fraction = if (balance.currentCreditedRaw > 0) {
+  val status = ReserveCardStatuses.current(balance)
+  val available = status.hasBalance
+  val fraction = if (available && balance.currentCreditedRaw > 0) {
     (balance.currentRemainingRaw.toDouble() / balance.currentCreditedRaw).toFloat().coerceIn(0f, 1f)
   } else {
     0f
@@ -344,6 +344,7 @@ private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalan
         style = MaterialTheme.typography.bodyMedium,
         textAlign = TextAlign.Center
       )
+      ReserveStatusMessage(status)
       ReserveRemainingLabel()
       ReserveEnergyValue("${if (balance.approximate) "≈ " else ""}${formatEnergy(balance.currentRemainingRaw)} kWh")
       LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), drawStopIndicator = {})
@@ -357,7 +358,7 @@ private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalan
       ReserveMetric(R.string.reserve_current_credited, balance.currentCreditedRaw, formatNumber(reserve.retainedPercent / 100.0))
       ReserveMetric(R.string.reserve_current_used, balance.currentUsedRaw)
     } else {
-      Text(stringResource(R.string.reserve_no_reading), style = MaterialTheme.typography.bodyMedium)
+      ReserveStatusMessage(status)
     }
     Text(stringResource(R.string.reserve_fifo_help), style = MaterialTheme.typography.bodySmall)
   }
@@ -365,7 +366,8 @@ private fun ReserveCurrentOverview(reserve: EnergyReserve, balance: ReserveBalan
 
 @Composable
 private fun ReserveTotalOverview(reserve: EnergyReserve, balance: ReserveBalance) {
-  val available = balance.status in listOf(ReserveStatus.ACTIVE, ReserveStatus.EXHAUSTED, ReserveStatus.EXPIRED)
+  val status = ReserveCardStatuses.total(reserve, balance)
+  val available = status.hasBalance
   val fraction = if (available) ReserveCalculator.totalAvailableFraction(reserve, balance) else 0f
   ReserveCard {
     ReserveCardTitle(R.string.reserve_total_available)
@@ -376,6 +378,7 @@ private fun ReserveTotalOverview(reserve: EnergyReserve, balance: ReserveBalance
         style = MaterialTheme.typography.bodyMedium,
         textAlign = TextAlign.Center
       )
+      ReserveStatusMessage(status)
       ReserveRemainingLabel()
       val currentRemaining = if (reserve.currentReserveEnabled) balance.currentRemainingRaw else 0L
       val total = ReserveEnergy.kwh(balance.remainingRaw).add(ReserveEnergy.kwh(currentRemaining))
@@ -387,7 +390,7 @@ private fun ReserveTotalOverview(reserve: EnergyReserve, balance: ReserveBalance
       ReserveMetric(R.string.reserve_total_credited, ReserveEnergy.kwh(reserve.initialRaw).add(ReserveEnergy.kwh(currentCredited)))
       ReserveMetric(R.string.reserve_used, ReserveEnergy.kwh(balance.usedRaw).add(ReserveEnergy.kwh(currentUsed)))
     } else {
-      Text(stringResource(R.string.reserve_total_unavailable), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+      ReserveStatusMessage(status)
     }
     if (available) ReserveMetric(R.string.reserve_imported, balance.consumedRaw)
     val timestamp = if (reserve.hourlyEnabled) reserve.hourlyProgress?.boundary?.timestamp else reserve.lastReading?.timestamp
