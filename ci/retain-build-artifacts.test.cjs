@@ -18,8 +18,8 @@ function fixture(current = run(31, 'in_progress', null)) {
       artifact(280, 28), artifact(320, 32), artifact(900, 90)],
     releases: [31, 30, 29, 28, 32].map(number => ({ id: number, tag_name: `magazyn-build-${number}`, draft: false })),
     assets: new Map([31, 30, 29, 28, 32].map(number => [number, [
-      { id: number * 100, name: 'supla-magazyn.apk' },
-      { id: number * 100 + 1, name: 'supla-magazyn.apk.sha256' },
+      { id: number * 100, name: 'supla-magazyn.apk', state: 'uploaded', size: 123 },
+      { id: number * 100 + 1, name: 'supla-magazyn.apk.sha256', state: 'uploaded', size: 64 },
       { id: number * 100 + 2, name: 'unrelated.txt' }
     ]]))
   };
@@ -51,7 +51,7 @@ function fixture(current = run(31, 'in_progress', null)) {
 test('keeps two newest successful builds, active runs and artifacts from other workflows', async () => {
   const f = fixture();
   await f.invoke();
-  assert.deepEqual(f.deleted.artifacts, [290, 280]);
+  assert.deepEqual(f.deleted.artifacts, []);
   assert.deepEqual(f.deleted.assets, [2900, 2901, 2800, 2801]);
   assert.equal(f.calls.find(call => call.endpoint === 'runs').args.workflow_id, 7);
   assert.ok(f.calls.every(call => call.args.per_page === 100));
@@ -63,23 +63,23 @@ test('out-of-order completion retains higher build numbers', async () => {
   f.data.artifacts = [artifact(280, 28, 'supla-magazyn-apk'), artifact(310, 31), artifact(300, 30)];
   f.data.releases = f.data.releases.filter(release => release.id !== 32);
   await f.invoke();
-  assert.deepEqual(f.deleted.artifacts, [280]);
+  assert.deepEqual(f.deleted.artifacts, []);
   assert.ok(!f.deleted.assets.includes(3100) && !f.deleted.assets.includes(3000));
 });
 
-test('missing or expired current APK stops cleanup before any deletion', async () => {
-  for (const expired of [false, true]) {
+test('missing or incomplete current release stops cleanup before any deletion', async () => {
+  for (const incomplete of [false, true]) {
     const f = fixture();
-    if (expired) f.data.artifacts[0].expired = true;
-    else f.data.artifacts.shift();
-    await assert.rejects(f.invoke(), /Current APK artifact missing/);
+    if (incomplete) f.data.assets.get(31)[0].size = 0;
+    else f.data.releases = f.data.releases.filter(release => release.id !== 31);
+    await assert.rejects(f.invoke(), /Current release APK or checksum missing/);
     assert.deepEqual(f.deleted, { artifacts: [], assets: [] });
   }
 });
 
 test('preserves drafts, unrelated release tags and unrelated attachments', async () => {
   const f = fixture();
-  f.data.releases = [
+  f.data.releases = [f.data.releases[0],
     { id: 28, tag_name: 'magazyn-build-28', draft: true },
     { id: 29, tag_name: 'upstream-v29', draft: false },
     { id: 1, tag_name: 'magazyn-build-1-extra', draft: false }
@@ -110,6 +110,11 @@ test('first successful build does not require a second build', async () => {
   f.data.runs = [run(1, 'in_progress', null)];
   f.data.artifacts = [artifact(10, 1, 'supla-magazyn-apk')];
   f.data.releases = [{ id: 1, tag_name: 'magazyn-build-1', draft: false }];
+  f.data.assets.set(1, [
+    { name: 'supla-magazyn.apk', state: 'uploaded', size: 123 },
+    { name: 'supla-magazyn.apk.sha256', state: 'uploaded', size: 64 }
+  ]);
   await f.invoke();
   assert.deepEqual(f.deleted, { artifacts: [], assets: [] });
 });
+
