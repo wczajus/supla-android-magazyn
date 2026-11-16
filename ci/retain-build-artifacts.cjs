@@ -1,4 +1,4 @@
-// Keep download files from the two newest successful builds of this workflow.
+// Keep release download files from the two newest successful builds of this workflow.
 // Release/tag history and workflow logs stay available. Active runs are protected.
 module.exports = async function retainBuildArtifacts({ github, context, core }) {
   const repo = context.repo;
@@ -10,18 +10,18 @@ module.exports = async function retainBuildArtifacts({ github, context, core }) 
   // This job only runs after a successful build and publication (or a manual build).
   builds.set(current.id, current);
   const kept = [...builds.values()].sort((a, b) => b.run_number - a.run_number).slice(0, 2);
-  const keepIds = new Set(kept.map(run => run.id));
   const keepNumbers = new Set(kept.map(run => run.run_number));
   const runsById = new Map(runs.map(run => [run.id, run]));
   runsById.set(current.id, current);
   const knownNumbers = new Set([...runsById.values()].map(run => run.run_number));
   const protectedNumbers = new Set(runs.filter(run => run.id !== current.id && run.status !== 'completed').map(run => run.run_number));
-  const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, { ...repo, per_page: 100 });
-  // Fail before deleting anything if the just-built APK is missing.
-  if (!artifacts.some(artifact => artifact.workflow_run?.id === current.id && artifact.name === 'supla-magazyn-apk' && !artifact.expired)) {
-    throw new Error('Current APK artifact missing; retention stopped.');
-  }
   const releases = await github.paginate(github.rest.repos.listReleases, { ...repo, per_page: 100 });
+  // Publication is in the build job; require its complete release before pruning anything.
+  const currentRelease = releases.find(release => release.tag_name === `magazyn-build-${current.run_number}` && !release.draft);
+  const currentAssets = currentRelease ? await github.paginate(github.rest.repos.listReleaseAssets, { ...repo, release_id: currentRelease.id, per_page: 100 }) : [];
+  if (!['supla-magazyn.apk', 'supla-magazyn.apk.sha256'].every(name => currentAssets.some(asset => asset.name === name && asset.state === 'uploaded' && asset.size > 0))) {
+    throw new Error('Current release APK or checksum missing; retention stopped.');
+  }
   const oldReleases = releases.filter(release => {
     const match = /^magazyn-build-([1-9]\d*)$/.exec(release.tag_name);
     if (!match || release.draft) return false;
@@ -37,14 +37,8 @@ module.exports = async function retainBuildArtifacts({ github, context, core }) 
       core.info(`Removed ${release.tag_name}/${asset.name}`);
     }
   }
-  for (const artifact of artifacts) {
-    const run = runsById.get(artifact.workflow_run?.id);
-    if (!run || keepIds.has(run.id) || (run.id !== current.id && run.status !== 'completed')) continue;
-    await deleteIfPresent(() => github.rest.actions.deleteArtifact({ ...repo, artifact_id: artifact.id }));
-    core.info(`Removed workflow artifact ${artifact.id} (${artifact.name}, build ${run.run_number})`);
-  }
   await core.summary.addHeading('Build file retention').addRaw(`Files retained for builds: ${kept.map(run => run.run_number).join(', ')}. `)
-    .addRaw('Older APK release attachments and workflow artifacts removed; release history, tags and workflow logs preserved.').write();
+    .addRaw('Older APK release attachments removed; release history, tags and workflow logs preserved. Actions artifacts are maintained independently.').write();
 };
 
 async function deleteIfPresent(remove) {
@@ -54,3 +48,4 @@ async function deleteIfPresent(remove) {
     if (error.status !== 404) throw error;
   }
 }
+
